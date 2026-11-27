@@ -67,6 +67,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.Today
@@ -81,6 +82,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -200,13 +203,13 @@ fun Modifier.glass(radius: Int = 20, strong: Boolean = false): Modifier {
 }
 
 @Composable
-fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, getFlag: String?) {
+fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, getFlag: String?, demo: String? = null) {
     val ctx = LocalContext.current
     val ar = LocalConfiguration.current.locales[0].language == "ar"
     val dark = isSystemInDarkTheme()
     var apps by remember { mutableStateOf(CatalogRepo.bundled(ctx)) }
     var tab by remember {
-        mutableIntStateOf(when (startTab) { "games" -> 1; "apps" -> 2; "search" -> 3; else -> 0 })
+        mutableIntStateOf(when (startTab) { "games" -> 1; "apps" -> 2; "search" -> 3; "settings" -> 4; else -> 0 })
     }
     var selected by remember { mutableStateOf<AppItem?>(null) }
     var handled by remember { mutableStateOf(false) }
@@ -216,7 +219,22 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
         if (cached != null && cached.isNotEmpty()) apps = cached
         val remote = withContext(Dispatchers.IO) { CatalogRepo.fetchRemote(ctx) }
         if (remote != null) apps = remote
+        if (demo == "update" || demo == "force") {
+            Meta.store = StoreInfo(
+                "1.2.0", 999, "", 0, "", demo == "force", 0,
+                L("A new look, faster downloads and a Settings page.", "شكل جديد، تحميل أسرع، وصفحة إعدادات.")
+            )
+        }
     }
+    val scope = rememberCoroutineScope()
+    val ownVc = remember(tickState.intValue) {
+        try { ctx.packageManager.getPackageInfo(ctx.packageName, 0).longVersionCode } catch (e: Exception) { 0L }
+    }
+    val su = Meta.store
+    val needUpdate = su != null && su.versionCode > ownVc
+    val forced = needUpdate && su != null && (su.force || ownVc < su.minVersionCode)
+    var later by remember { mutableStateOf(false) }
+    BackHandler(enabled = forced) { }
     LaunchedEffect(apps) {
         if (!handled && openId != null) {
             val a = apps.firstOrNull { it.id == openId }
@@ -227,7 +245,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
             }
         }
     }
-    BackHandler(enabled = selected != null) { selected = null }
+    BackHandler(enabled = selected != null && !forced) { selected = null }
 
     CompositionLocalProvider(LocalAr provides ar, LocalDark provides dark, LocalTick provides tickState.intValue) {
         val srcLayer = rememberGraphicsLayer()
@@ -242,10 +260,16 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 label = "tabs"
             ) { t ->
                 when (t) {
-                    0 -> TodayScreen(apps, { selected = it })
+                    0 -> TodayScreen(apps, { selected = it }, { tab = 4 })
                     1 -> ListScreen(tr("Games", "الألعاب"), apps.filter { it.category == "game" }, tr("Games coming soon", "الألعاب قريبًا")) { selected = it }
                     2 -> ListScreen(tr("Apps", "التطبيقات"), apps.filter { it.category != "game" }, tr("Apps coming soon", "التطبيقات قريبًا")) { selected = it }
-                    else -> SearchScreen(apps) { selected = it }
+                    3 -> SearchScreen(apps) { selected = it }
+                    else -> SettingsScreen(apps, su, needUpdate, {
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) { CatalogRepo.fetchRemote(ctx) }
+                            if (r != null) apps = r
+                        }
+                    }) { selected = it }
                 }
             }
           }
@@ -258,6 +282,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 val a = selected
                 if (a != null) DetailScreen(a) { selected = null } else Box(Modifier.fillMaxSize())
             }
+            if (needUpdate && su != null && (forced || !later)) UpdateSheet(su, forced) { later = true }
         }
     }
 }
@@ -342,12 +367,13 @@ fun Dock(tab: Int, src: GraphicsLayer, onTab: (Int) -> Unit) {
         Icons.Filled.SportsEsports to tr("Games", "الألعاب"),
         Icons.Filled.Apps to tr("Apps", "التطبيقات"),
         Icons.Filled.Search to tr("Search", "بحث"),
+        Icons.Filled.Settings to tr("Settings", "الإعدادات"),
     )
     val dark = LocalDark.current
     val shape = RoundedCornerShape(30.dp)
     Row(
         Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 22.dp, vertical = 10.dp).fillMaxWidth().height(62.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth().height(62.dp)
             .liveGlass(src, shape, blur = 45f, tintAlpha = 0.42f)
             .padding(5.dp),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -368,7 +394,7 @@ fun Dock(tab: Int, src: GraphicsLayer, onTab: (Int) -> Unit) {
 }
 
 @Composable
-fun Header(title: String, kicker: String? = null) {
+fun Header(title: String, kicker: String? = null, onLogo: (() -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -377,7 +403,7 @@ fun Header(title: String, kicker: String? = null) {
             if (kicker != null) Text(kicker, color = subColor(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
             Text(title, color = textColor(), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp)
         }
-        Logo(40)
+        if (onLogo != null) Box(Modifier.pressScale(onLogo)) { Logo(40) } else Logo(40)
     }
 }
 
@@ -390,7 +416,7 @@ fun SectionTitle(t: String, sub: String? = null) {
 }
 
 @Composable
-fun TodayScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
+fun TodayScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit, onSettings: () -> Unit = {}) {
     val ctx = LocalContext.current
     val tick = LocalTick.current
     val ar = LocalAr.current
@@ -402,14 +428,19 @@ fun TodayScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
         apps.filter { val v = Downloads.installedVersion(ctx, it.pkg); v != null && v < it.versionCode }
     }
     LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
-        item { Header(tr("Today", "اليوم"), date) }
+        item { Header(tr("Today", "اليوم"), date, onSettings) }
         if (apps.isEmpty()) item { EmptyState(tr("Loading the store...", "جاري تحميل المتجر...")) }
         items(featured.size) { i ->
             Reveal(i) { Hero(featured[i]) { onOpen(featured[i]) } }
             Spacer(Modifier.height(14.dp))
         }
         if (updates.isNotEmpty()) {
-            item { SectionTitle(tr("Updates available", "تحديثات متاحة")) }
+            item {
+                Row(Modifier.fillMaxWidth().padding(end = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { SectionTitle(tr("Updates available", "تحديثات متاحة")) }
+                    SmallButton(tr("Update all", "تحديث الكل")) { Downloads.updateAll(ctx, updates) }
+                }
+            }
             items(updates.size) { i -> Reveal(i) { AppRow(updates[i]) { onOpen(updates[i]) } } }
         }
         if (others.isNotEmpty()) {
@@ -730,5 +761,177 @@ fun Stat(label: String, value: String) {
         Text(label, color = subColor(), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
         Spacer(Modifier.height(4.dp))
         Text(value, color = textColor(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+
+@Composable
+fun SmallButton(label: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Box(
+        Modifier.clip(shape).background(accent().copy(alpha = 0.14f)).border(BorderStroke(0.6.dp, hairline()), shape)
+            .pressScale(onClick).padding(horizontal = 16.dp, vertical = 9.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = accent(), fontWeight = FontWeight.Bold, fontSize = 13.5.sp, maxLines = 1)
+    }
+}
+
+fun storeAsApp(ctx: android.content.Context, s: StoreInfo) = AppItem(
+    id = "mas-store", pkg = ctx.packageName, name = L("MAS STORE", "MAS STORE"),
+    subtitle = L("Store update", "تحديث المتجر"), category = "app", icon = "", color = 0xFF2A2B2EL,
+    screenshots = emptyList(), apk = s.apk, version = s.version, versionCode = s.versionCode, size = s.size,
+    sha256 = s.sha256, description = L("", ""), whatsNew = s.notes, featured = false,
+)
+
+@Composable
+fun SettingRow(title: String, value: String, last: Boolean = false, onClick: (() -> Unit)? = null) {
+    val m = if (onClick != null) Modifier.pressScale(onClick) else Modifier
+    Column(m.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = textColor(), fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Text(value, color = subColor(), fontSize = 14.sp, maxLines = 1)
+        }
+        if (!last) Box(Modifier.fillMaxWidth().height(0.6.dp).background(hairline()))
+    }
+}
+
+@Composable
+fun UpdateSheet(store: StoreInfo, forced: Boolean, onLater: () -> Unit) {
+    val ctx = LocalContext.current
+    val ar = LocalAr.current
+    val app = remember(store) { storeAsApp(ctx, store) }
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { if (!forced) onLater() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.padding(26.dp).fillMaxWidth().glass(30, strong = true)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Logo(76)
+            Spacer(Modifier.height(14.dp))
+            Text(tr("Update available", "تحديث جديد متاح"), color = textColor(), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Spacer(Modifier.height(4.dp))
+            Text("MAS STORE  v" + store.version, color = subColor(), fontSize = 13.sp)
+            val notes = store.notes.get(ar)
+            if (notes.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(notes, color = textColor(), fontSize = 14.sp, textAlign = TextAlign.Center)
+            }
+            if (forced) {
+                Spacer(Modifier.height(10.dp))
+                Text(tr("This update is required to continue.", "التحديث ده إجباري علشان تكمل."), color = subColor(), fontSize = 12.5.sp, textAlign = TextAlign.Center)
+            }
+            Spacer(Modifier.height(18.dp))
+            GetButton(app, large = true)
+            if (!forced) {
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.pressScale(onLater).padding(horizontal = 18.dp, vertical = 8.dp)) {
+                    Text(tr("Later", "لاحقًا"), color = subColor(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(apps: List<AppItem>, store: StoreInfo?, needUpdate: Boolean, onCheck: () -> Unit, onOpen: (AppItem) -> Unit) {
+    val ctx = LocalContext.current
+    val tick = LocalTick.current
+    val pi = remember { ctx.packageManager.getPackageInfo(ctx.packageName, 0) }
+    val updates = remember(tick, apps) {
+        apps.filter { val v = Downloads.installedVersion(ctx, it.pkg); v != null && v < it.versionCode }
+    }
+    val installedN = remember(tick, apps) { apps.count { Downloads.installedVersion(ctx, it.pkg) != null } }
+    val notifOn = remember(tick) { androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled() }
+    val canInstall = remember(tick) { ctx.packageManager.canRequestPackageInstalls() }
+    val on = tr("On", "شغّال")
+    val off = tr("Off", "مقفول")
+    LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
+        item { Header(tr("Settings", "الإعدادات"), "MAS STORE") }
+        item {
+            Column(Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(26).padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Logo(64)
+                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                        Text("MAS STORE", color = textColor(), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(tr("Version ", "الإصدار ") + pi.versionName + " (" + androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pi) + ")", color = subColor(), fontSize = 13.sp)
+                        Text(
+                            if (needUpdate && store != null) tr("Update available: v", "تحديث متاح: v") + store.version
+                            else tr("You have the latest version", "معاك آخر إصدار"),
+                            color = if (needUpdate) textColor() else subColor(), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                if (needUpdate && store != null) GetButton(storeAsApp(ctx, store), large = true)
+                else SmallButton(tr("Check for updates", "تحقق من التحديثات"), onCheck)
+            }
+        }
+        item { SectionTitle(tr("At a glance", "لمحة"), tr("Your store in numbers", "متجرك في أرقام")) }
+        item {
+            Row(
+                Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Stat(tr("APPS", "تطبيقات"), apps.count { it.category != "game" }.toString())
+                Stat(tr("GAMES", "ألعاب"), apps.count { it.category == "game" }.toString())
+                Stat(tr("INSTALLED", "مثبّتة"), installedN.toString())
+                Stat(tr("UPDATES", "تحديثات"), updates.size.toString())
+            }
+        }
+        item { SectionTitle(tr("App updates", "تحديثات التطبيقات")) }
+        item {
+            Column(Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(16.dp)) {
+                if (updates.isEmpty()) {
+                    Text(tr("Everything is up to date.", "كل التطبيقات والألعاب محدّثة."), color = subColor(), fontSize = 14.sp)
+                } else {
+                    Text(
+                        tr("${updates.size} updates are ready.", "فيه ${updates.size} تحديثات جاهزة."),
+                        color = textColor(), fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SmallButton(tr("Update apps & games", "تحديث التطبيقات والألعاب")) { Downloads.updateAll(ctx, updates) }
+                }
+            }
+        }
+        items(updates.size) { i -> AppRow(updates[i]) { onOpen(updates[i]) } }
+        item { SectionTitle(tr("Device", "الجهاز")) }
+        item {
+            Column(Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(horizontal = 16.dp)) {
+                SettingRow(tr("Notifications", "الإشعارات"), if (notifOn) on else off) {
+                    val i = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try { ctx.startActivity(i) } catch (e: Exception) { }
+                }
+                SettingRow(tr("Install apps", "تثبيت التطبيقات"), if (canInstall) tr("Allowed", "مسموح") else tr("Tap to allow", "اضغط للسماح"), true) {
+                    val i = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:" + ctx.packageName))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try { ctx.startActivity(i) } catch (e: Exception) { }
+                }
+            }
+        }
+        item { SectionTitle(tr("About", "عن المتجر")) }
+        item {
+            Column(Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(16.dp)) {
+                Text(
+                    tr(
+                        "A private store for the apps and games made by MAS. New releases and updates reach you instantly.",
+                        "متجر خاص بالتطبيقات والألعاب اللي بيعملها MAS. الجديد والتحديثات بتوصلك لحظيًا."
+                    ),
+                    color = subColor(), fontSize = 13.5.sp
+                )
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth().padding(top = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("MAS STORE", color = subColor(), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+            }
+        }
     }
 }
