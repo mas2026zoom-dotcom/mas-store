@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "apps": [
+    {
+      "id": "alsalah",
+      "package": "com.mas.alsalah",
+      "name": { "en": "Al-Salah", "ar": "الصلاة" },
+      "subtitle": { "en": "Prayer times, Qibla and Quran", "ar": "مواقيت الصلاة والقبلة والمصحف" },
+      "category": "app",
+      "icon": "https://raw.githubusercontent.com/mas2026zoom-dotcom/mas-store/main/catalog/icons/alsalah.png",
+      "color": "#0B6B4B",
+      "screenshots": [
+        "https://raw.githubusercontent.com/mas2026zoom-dotcom/mas-store/main/catalog/shots/alsalah-1.jpg",
+        "https://raw.githubusercontent.com/mas2026zoom-dotcom/mas-store/main/catalog/shots/alsalah-2.jpg",
+        "https://raw.githubusercontent.com/mas2026zoom-dotcom/mas-store/main/catalog/shots/alsalah-3.jpg"
+      ],
+      "apk": "https://github.com/mas2026zoom-dotcom/-/releases/download/apk-latest/al-salah-debug.apk",
+      "version": "3.1.0",
+      "versionCode": 12,
+      "size": 20768765,
+      "sha256": "",
+      "description": {
+        "en": "Accurate prayer times, Qibla compass, adhan alerts, adhkar, tasbeeh and an offline Quran with the Madinah mushaf, in a glass design.",
+        "ar": "مواقيت صلاة دقيقة، بوصلة القبلة، تنبيهات الأذان، الأذكار، المسبحة، ومصحف المدينة بدون نت، بتصميم زجاجي."
+      },
+      "whatsNew": {
+        "en": "Offline Quran section with optional one-time mushaf download.",
+        "ar": "قسم المصحف بدون نت مع تنزيل اختياري لمرة واحدة."
+      },
+      "featured": true
+    }
+  ]
+}

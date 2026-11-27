@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MAS STORE Admin</title>
+<style>
+:root{--bg:#07070c;--card:rgba(255,255,255,.08);--bd:rgba(255,255,255,.18);--tx:#fff;--sub:rgba(255,255,255,.62);--ac:#4f8bff;--ac2:#9b5cff;--rd:#ff6b6b}
+@media(prefers-color-scheme:light){:root{--bg:#f1f2f8;--card:rgba(255,255,255,.7);--bd:rgba(255,255,255,.95);--tx:#111118;--sub:rgba(17,17,24,.55)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;min-height:100vh;
+background-image:radial-gradient(circle at 10% 5%,rgba(79,139,255,.35),transparent 45%),radial-gradient(circle at 95% 40%,rgba(155,92,255,.3),transparent 45%),radial-gradient(circle at 15% 95%,rgba(255,111,168,.2),transparent 45%);background-attachment:fixed}
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 80px}
+h1{font-size:28px;margin:6px 0 2px}h2{font-size:20px;margin:0 0 12px}
+.logo{display:flex;align-items:center;gap:12px}
+.mark{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;font-weight:900;font-size:22px;color:#fff}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:16px;margin:14px 0;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px;font-weight:700}
+input,textarea,select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--bd);background:rgba(127,127,127,.12);color:var(--tx);font:inherit}
+textarea{min-height:80px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button{border:0;border-radius:50px;padding:12px 20px;font:inherit;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff}
+button.g{background:var(--card);border:1px solid var(--bd);color:var(--tx)}
+button.d{background:rgba(255,107,107,.18);color:var(--rd);border:1px solid rgba(255,107,107,.4)}
+button:disabled{opacity:.5}
+.app{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--bd)}
+.app:first-child{border-top:0}.app img{width:56px;height:56px;border-radius:14px;object-fit:cover;background:rgba(127,127,127,.2)}
+.app .t{flex:1;min-width:0}.app .t b{display:block}.app .t span{color:var(--sub);font-size:13px}
+.msg{padding:12px 14px;border-radius:14px;margin:10px 0;font-size:14px;white-space:pre-wrap}
+.ok{background:rgba(60,200,120,.18)}.er{background:rgba(255,107,107,.2)}.inf{background:rgba(79,139,255,.18)}
+.bar{height:8px;border-radius:8px;background:rgba(127,127,127,.25);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+.shots{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.shots img{width:70px;height:130px;object-fit:cover;border-radius:10px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="logo"><div class="mark">M</div><div><h1>MAS STORE <small style="font-size:14px;color:var(--sub)">Admin</small></h1></div></div>
+
+ <div id="login" class="card">
+  <h2>تسجيل الدخول</h2>
+  <p class="hint" style="font-size:14px">الصق مفتاح GitHub الخاص بك (Token) مرة واحدة. بيتخزن في المتصفح بتاعك بس وماحدش غيرك يقدر يعدّل في المتجر من غيره.</p>
+  <label>GitHub Token</label>
+  <input id="tok" type="password" placeholder="github_pat_..." autocomplete="off">
+  <div style="margin-top:12px"><button onclick="login()">دخول</button></div>
+  <div id="loginmsg"></div>
+ </div>
+
+ <div id="main" class="hide">
+  <div class="card">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">التطبيقات والألعاب</h2><div><button onclick="newApp()">+ إضافة</button> <button class="g" onclick="logout()">خروج</button></div></div>
+   <div id="list" style="margin-top:8px"></div>
+  </div>
+
+  <div id="editor" class="card hide">
+   <h2 id="etitle">تطبيق جديد</h2>
+   <div class="row"><div><label>المعرّف (id) إنجليزي بدون مسافات</label><input id="f_id" placeholder="alsalah"></div>
+   <div><label>Package name</label><input id="f_pkg" placeholder="com.mas.alsalah"></div></div>
+   <div class="row"><div><label>الاسم (English)</label><input id="f_nen"></div><div><label>الاسم (عربي)</label><input id="f_nar"></div></div>
+   <div class="row"><div><label>العنوان الفرعي (English)</label><input id="f_sen"></div><div><label>العنوان الفرعي (عربي)</label><input id="f_sar"></div></div>
+   <div class="row"><div><label>الوصف (English)</label><textarea id="f_den"></textarea></div><div><label>الوصف (عربي)</label><textarea id="f_dar"></textarea></div></div>
+   <div class="row"><div><label>الجديد (English)</label><input id="f_wen"></div><div><label>الجديد (عربي)</label><input id="f_war"></div></div>
+   <div class="row"><div><label>القسم</label><select id="f_cat"><option value="app">تطبيق</option><option value="game">لعبة</option></select></div>
+   <div><label>لون البطاقة</label><input id="f_color" type="color" value="#4f8bff" style="height:46px;padding:4px"></div></div>
+   <div class="row"><div><label>رقم الإصدار (مثلاً 1.2.0)</label><input id="f_ver"></div><div><label>Version code (رقم صحيح، يزيد مع كل تحديث)</label><input id="f_vc" type="number"></div></div>
+   <label><input id="f_feat" type="checkbox" style="width:auto"> يظهر كبطاقة كبيرة في صفحة اليوم</label>
+
+   <label>ملف APK</label>
+   <input id="f_apkfile" type="file" accept=".apk,application/vnd.android.package-archive">
+   <div class="hint" id="apkinfo"></div>
+   <label>الأيقونة (صورة مربعة)</label>
+   <input id="f_iconfile" type="file" accept="image/*">
+   <div class="hint" id="iconinfo"></div>
+   <label>صور الشاشة (اختر كذا صورة)</label>
+   <input id="f_shotfiles" type="file" accept="image/*" multiple>
+   <div class="shots" id="shotprev"></div>
+   <div class="hint">لو ما اخترتش ملفات جديدة، الملفات الحالية بتفضل زي ما هي.</div>
+
+   <div class="bar"><i id="pbar"></i></div>
+   <div id="emsg"></div>
+   <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+    <button id="savebtn" onclick="save()">حفظ ونشر</button>
+    <button class="g" onclick="closeEd()">إلغاء</button>
+    <button class="d hide" id="delbtn" onclick="del()">حذف من المتجر</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<script>
+const OWNER='mas2026zoom-dotcom', REPO='mas-store', BRANCH='main';
+const API='https://api.github.com/repos/'+OWNER+'/'+encodeURIComponent(REPO);
+const CAT='catalog/apps.json';
+let TOKEN=localStorage.getItem('mas_tok')||'', catalog={version:1,apps:[]}, catSha=null, cur=null, isNew=false;
+const $=id=>document.getElementById(id);
+const hdr=(x)=>Object.assign({'Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json'},x||{});
+function msg(el,t,c){$(el).innerHTML='<div class="msg '+c+'"></div>';$(el).firstChild.textContent=t}
+async function gh(path,opt){const r=await fetch(API+path,Object.assign({headers:hdr()},opt||{}));if(!r.ok&&r.status!==404){throw new Error(path+' → '+r.status+' '+(await r.text()).slice(0,200))}return r}
+function b64utf8(s){return btoa(unescape(encodeURIComponent(s)))}
+async function login(){
+ TOKEN=$('tok').value.trim()||TOKEN;
+ try{const r=await fetch(API,{headers:hdr()});if(!r.ok)throw new Error('مفتاح غير صحيح أو مالوش صلاحية على المتجر ('+r.status+')');
+  const j=await r.json();if(!j.permissions||!j.permissions.push)throw new Error('المفتاح ده مالوش صلاحية الكتابة. اختار Contents: Read and write');
+  localStorage.setItem('mas_tok',TOKEN);await loadCat();show()}catch(e){msg('loginmsg',e.message,'er')}
+}
+function logout(){localStorage.removeItem('mas_tok');TOKEN='';location.reload()}
+function show(){$('login').classList.add('hide');$('main').classList.remove('hide');renderList()}
+async function loadCat(){
+ const r=await gh('/contents/'+CAT+'?ref='+BRANCH+'&t='+Date.now());
+ if(r.status===404){catalog={version:1,apps:[]};catSha=null;return}
+ const j=await r.json();catSha=j.sha;catalog=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
+ if(!catalog.apps)catalog.apps=[];
+}
+function renderList(){
+ const L=$('list');L.innerHTML='';
+ if(!catalog.apps.length){L.innerHTML='<p class="hint">لسه مفيش تطبيقات.</p>';return}
+ catalog.apps.forEach((a,i)=>{
+  const d=document.createElement('div');d.className='app';
+  d.innerHTML='<img><div class="t"><b></b><span></span></div><button class="g">تعديل</button>';
+  d.querySelector('img').src=a.icon||'';d.querySelector('b').textContent=(a.name&&(a.name.ar||a.name.en))||a.id;
+  d.querySelector('span').textContent=(a.category==='game'?'لعبة':'تطبيق')+' • v'+(a.version||'?');
+  d.querySelector('button').onclick=()=>edit(i);L.appendChild(d)});
+}
+function newApp(){isNew=true;cur={id:'',package:'',name:{},subtitle:{},description:{},whatsNew:{},category:'app',color:'#4f8bff',screenshots:[],apk:'',version:'',versionCode:0,size:0,sha256:'',icon:'',featured:false};fill();$('delbtn').classList.add('hide');$('etitle').textContent='تطبيق جديد'}
+function edit(i){isNew=false;cur=JSON.parse(JSON.stringify(catalog.apps[i]));fill();$('delbtn').classList.remove('hide');$('etitle').textContent='تعديل: '+((cur.name&&cur.name.ar)||cur.id)}
+function fill(){
+ const g=(o,k)=>(o&&o[k])||'';
+ $('f_id').value=cur.id;$('f_id').disabled=!isNew;$('f_pkg').value=cur.package;
+ $('f_nen').value=g(cur.name,'en');$('f_nar').value=g(cur.name,'ar');
+ $('f_sen').value=g(cur.subtitle,'en');$('f_sar').value=g(cur.subtitle,'ar');
+ $('f_den').value=g(cur.description,'en');$('f_dar').value=g(cur.description,'ar');
+ $('f_wen').value=g(cur.whatsNew,'en');$('f_war').value=g(cur.whatsNew,'ar');
+ $('f_cat').value=cur.category||'app';$('f_color').value=(cur.color||'#4f8bff').slice(0,7);
+ $('f_ver').value=cur.version||'';$('f_vc').value=cur.versionCode||'';$('f_feat').checked=!!cur.featured;
+ $('f_apkfile').value='';$('f_iconfile').value='';$('f_shotfiles').value='';
+ $('apkinfo').textContent=cur.apk?('الحالي: '+cur.apk.split('/').pop()+' ('+(cur.size/1048576).toFixed(1)+' MB)'):'';
+ $('iconinfo').textContent=cur.icon?'فيه أيقونة حالية':'';
+ const sp=$('shotprev');sp.innerHTML='';(cur.screenshots||[]).forEach(u=>{const im=document.createElement('img');im.src=u;sp.appendChild(im)});
+ $('emsg').innerHTML='';$('pbar').style.width='0';$('editor').classList.remove('hide');$('editor').scrollIntoView({behavior:'smooth'});
+}
+function closeEd(){$('editor').classList.add('hide')}
+function prog(p){$('pbar').style.width=Math.round(p*100)+'%'}
+function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file)})}
+async function sha256(file){const buf=await file.arrayBuffer();const h=await crypto.subtle.digest('SHA-256',buf);return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function resizeImg(file,max,type,q){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{let w=im.width,h=im.height,s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);c.toBlob(b=>res(b),type,q)};im.onerror=rej;im.src=URL.createObjectURL(file)})}
+async function putFile(path,b64,message){
+ let sha;const ex=await gh('/contents/'+path+'?ref='+BRANCH+'&t='+Date.now());if(ex.status===200)sha=(await ex.json()).sha;
+ const body={message,content:b64,branch:BRANCH};if(sha)body.sha=sha;
+ const r=await gh('/contents/'+path,{method:'PUT',headers:hdr({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+ if(!r.ok)throw new Error('تعذر رفع '+path+' ('+r.status+')');
+}
+const RAW=p=>'https://raw.githubusercontent.com/'+OWNER+'/'+REPO+'/'+BRANCH+'/'+p;
+async function uploadApk(id,file){
+ const tag='app-'+id;let rel;
+ let r=await gh('/releases/tags/'+tag);
+ if(r.status===404){r=await gh('/releases',{method:'POST',headers:hdr({'Content-Type':'application/json'}),body:JSON.stringify({tag_name:tag,name:id+' APK',body:'MAS STORE release asset',target_commitish:BRANCH})});if(!r.ok)throw new Error('تعذر إنشاء الإصدار '+r.status)}
+ rel=await r.json();
+ const name=id+'.apk';
+ for(const a of (rel.assets||[])){if(a.name===name)await gh('/releases/assets/'+a.id,{method:'DELETE'})}
+ // upload with progress via XHR
+ await new Promise((res,rej)=>{const x=new XMLHttpRequest();
+  x.open('POST','https://uploads.github.com/repos/'+OWNER+'/'+encodeURIComponent(REPO)+'/releases/'+rel.id+'/assets?name='+encodeURIComponent(name));
+  x.setRequestHeader('Authorization','Bearer '+TOKEN);x.setRequestHeader('Content-Type','application/vnd.android.package-archive');x.setRequestHeader('Accept','application/vnd.github+json');
+  x.upload.onprogress=e=>{if(e.lengthComputable)prog(e.loaded/e.total)};
+  x.onload=()=>x.status<300?res():rej(new Error('رفع APK فشل '+x.status+' '+x.responseText.slice(0,150)));
+  x.onerror=()=>rej(new Error('رفع APK فشل (شبكة)'));x.send(file)});
+ return 'https://github.com/'+OWNER+'/'+REPO+'/releases/download/'+tag+'/'+name;
+}
+async function save(){
+ const btn=$('savebtn');btn.disabled=true;
+ try{
+  const id=$('f_id').value.trim().toLowerCase();
+  if(!/^[a-z0-9-]{2,40}$/.test(id))throw new Error('المعرّف لازم يكون حروف إنجليزي صغيرة وأرقام وشرطة فقط');
+  if(isNew&&catalog.apps.some(a=>a.id===id))throw new Error('المعرّف ده موجود قبل كده');
+  if(!$('f_pkg').value.trim())throw new Error('اكتب Package name');
+  if(!$('f_nen').value.trim()&&!$('f_nar').value.trim())throw new Error('اكتب اسم التطبيق');
+  const a=cur;a.id=id;a.package=$('f_pkg').value.trim();
+  a.name={en:$('f_nen').value.trim(),ar:$('f_nar').value.trim()};
+  a.subtitle={en:$('f_sen').value.trim(),ar:$('f_sar').value.trim()};
+  a.description={en:$('f_den').value.trim(),ar:$('f_dar').value.trim()};
+  a.whatsNew={en:$('f_wen').value.trim(),ar:$('f_war').value.trim()};
+  a.category=$('f_cat').value;a.color=$('f_color').value;a.featured=$('f_feat').checked;
+  a.version=$('f_ver').value.trim();a.versionCode=parseInt($('f_vc').value||'0',10);
+  const apk=$('f_apkfile').files[0];
+  if(apk){msg('emsg','جاري رفع الـ APK...','inf');a.size=apk.size;a.sha256=await sha256(apk);a.apk=await uploadApk(id,apk)}
+  if(!a.apk)throw new Error('لازم ترفع ملف APK');
+  const ic=$('f_iconfile').files[0];
+  if(ic){msg('emsg','جاري رفع الأيقونة...','inf');const b=await resizeImg(ic,512,'image/png');await putFile('catalog/icons/'+id+'.png',await toB64(b),'Icon '+id);a.icon=RAW('catalog/icons/'+id+'.png')+'?v='+Date.now()}
+  const sh=[...$('f_shotfiles').files];
+  if(sh.length){msg('emsg','جاري رفع صور الشاشة...','inf');a.screenshots=[];let n=0;for(const f of sh){n++;const b=await resizeImg(f,1280,'image/jpeg',0.85);const p='catalog/shots/'+id+'-'+n+'.jpg';await putFile(p,await toB64(b),'Screenshot '+id+' '+n);a.screenshots.push(RAW(p)+'?v='+Date.now())}}
+  msg('emsg','جاري حفظ الكتالوج...','inf');
+  await loadCat();
+  const i=catalog.apps.findIndex(x=>x.id===id);if(i>=0)catalog.apps[i]=a;else catalog.apps.push(a);
+  await writeCat('Update '+id);
+  prog(1);msg('emsg','تم النشر ✅ التطبيق ظاهر في المتجر خلال دقيقة تقريبًا.','ok');renderList();isNew=false;$('f_id').disabled=true;$('delbtn').classList.remove('hide')
+ }catch(e){msg('emsg',e.message,'er')}
+ btn.disabled=false;
+}
+async function writeCat(m){
+ const body={message:m,content:b64utf8(JSON.stringify(catalog,null,2)+'\n'),branch:BRANCH};if(catSha)body.sha=catSha;
+ const r=await gh('/contents/'+CAT,{method:'PUT',headers:hdr({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+ if(!r.ok)throw new Error('تعذر حفظ الكتالوج ('+r.status+')');catSha=(await r.json()).content.sha;
+}
+async function del(){
+ if(!confirm('تحذف التطبيق ده من المتجر؟'))return;
+ try{await loadCat();catalog.apps=catalog.apps.filter(x=>x.id!==cur.id);await writeCat('Remove '+cur.id);
+  const r=await gh('/releases/tags/app-'+cur.id);if(r.status===200){const j=await r.json();await gh('/releases/'+j.id,{method:'DELETE'})}
+  closeEd();renderList()}catch(e){msg('emsg',e.message,'er')}
+}
+if(TOKEN){$('tok').value=TOKEN;login()}
+</script>
+</body>
+</html>
