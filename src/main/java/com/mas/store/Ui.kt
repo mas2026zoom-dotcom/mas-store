@@ -824,7 +824,7 @@ fun UpdateSheet(store: StoreInfo, forced: Boolean, onLater: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier.padding(26.dp).fillMaxWidth().glass(30, strong = true)
+            Modifier.padding(26.dp).fillMaxWidth().sheetSurface()
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -992,7 +992,7 @@ fun Onboarding(onDone: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier.padding(24.dp).fillMaxWidth().glass(30, strong = true).padding(22.dp),
+            Modifier.padding(24.dp).fillMaxWidth().sheetSurface().padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Logo(76)
@@ -1024,4 +1024,12 @@ fun Onboarding(onDone: () -> Unit) {
             }
         }
     }
+}
+
+
+@Composable
+fun Modifier.sheetSurface(): Modifier {
+    val dark = LocalDark.current
+    val s = RoundedCornerShape(30.dp)
+    return this.clip(s).background(if (dark) Color(0xFF2A2B2E) else Color.White).border(BorderStroke(0.8.dp, hairline()), s)
 }
