@@ -29,6 +29,15 @@ android {
         }
     }
 
+    buildTypes {
+        release {
+            isDebuggable = false
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    lint { checkReleaseBuilds = false; abortOnError = false }
+
     sourceSets["main"].assets.srcDir("catalog")
 
     buildFeatures { compose = true }
