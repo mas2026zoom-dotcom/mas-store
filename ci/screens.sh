@@ -20,6 +20,7 @@ adb shell input keyevent KEYCODE_WAKEUP
 adb shell wm dismiss-keyguard || true
 adb install -r apk/*.apk || exit 1
 adb shell settings put global hide_error_dialogs 1 || true
+adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
 adb shell cmd uimode night yes || true
 shot() { adb exec-out screencap -p > "shots/$1.png"; }
 go() { adb shell am start -S -n $PKG/.MainActivity "$@" > /dev/null 2>&1; sleep 9; }
