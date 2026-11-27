@@ -16,8 +16,8 @@ android {
         applicationId = "com.mas.store"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.2.1"
+        versionCode = 5
+        versionName = "1.3.0"
     }
 
     System.getenv("STABLE_DEBUG_KEYSTORE")?.takeIf { it.isNotBlank() }?.let { ks ->
