@@ -1,6 +1,7 @@
 name: Notify new apps and updates
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ['catalog/apps.json']
@@ -15,13 +16,14 @@ jobs:
       - name: Send FCM to topic
         env:
           FCM_SA: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+          EVENT: ${{ github.event_name }}
         run: |
           if [ -z "$FCM_SA" ]; then echo "FCM_SERVICE_ACCOUNT not set, skipping"; exit 0; fi
           pip install --quiet google-auth requests
           git show HEAD^:catalog/apps.json > /tmp/old.json 2>/dev/null || echo '{"apps":[]}' > /tmp/old.json
           printf '%s' "$FCM_SA" > /tmp/sa.json
           python3 - <<'PY'
-          import json, requests
+          import json, os, requests
           from google.oauth2 import service_account
           from google.auth.transport.requests import Request
           old = {a['id']: a for a in json.load(open('/tmp/old.json')).get('apps', [])}
@@ -34,6 +36,9 @@ jobs:
                   headers={'Authorization': 'Bearer ' + creds.token},
                   json={'message': {'topic': 'store', 'data': {'title': title, 'body': body, 'appId': app_id}, 'android': {'priority': 'HIGH'}}})
               print(app_id, r.status_code, r.text[:200])
+          if os.environ.get('EVENT') == 'workflow_dispatch':
+              send('MAS STORE', 'Test notification: push is working', '')
+              raise SystemExit(0)
           for a in new:
               nm = (a.get('name') or {}).get('en') or a['id']
               nar = (a.get('name') or {}).get('ar') or nm
