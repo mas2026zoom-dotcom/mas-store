@@ -102,6 +102,7 @@ object Downloads {
                 val total = if (c.contentLengthLong > 0) c.contentLengthLong else app.size
                 val md = MessageDigest.getInstance("SHA-256")
                 var done = 0L
+                var lastEmit = 0L
                 c.inputStream.use { input ->
                     part.outputStream().use { o ->
                         val buf = ByteArray(64 * 1024)
@@ -111,7 +112,11 @@ object Downloads {
                             o.write(buf, 0, n)
                             md.update(buf, 0, n)
                             done += n
-                            states[app.id] = Dl.Prog(done, total)
+                            val now = System.nanoTime()
+                            if (now - lastEmit > 120_000_000L) {
+                                lastEmit = now
+                                states[app.id] = Dl.Prog(done, total)
+                            }
                         }
                     }
                 }
