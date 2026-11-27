@@ -1,6 +1,9 @@
 package com.mas.store
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -28,6 +31,35 @@ data class AppItem(
     val whatsNew: L,
     val featured: Boolean,
 )
+
+data class StoreInfo(
+    val version: String,
+    val versionCode: Long,
+    val apk: String,
+    val size: Long,
+    val sha256: String,
+    val force: Boolean,
+    val minVersionCode: Long,
+    val notes: L,
+)
+
+object Meta {
+    var store by mutableStateOf<StoreInfo?>(null)
+}
+
+fun parseStore(json: String): StoreInfo? = try {
+    val o = JSONObject(json).optJSONObject("store")
+    if (o == null || o.optString("apk").isBlank()) null else {
+        val n = o.optJSONObject("notes")
+        StoreInfo(
+            o.optString("version"), o.optLong("versionCode", 0), o.optString("apk"), o.optLong("size", 0),
+            o.optString("sha256"), o.optBoolean("force", false), o.optLong("minVersionCode", 0),
+            L(n?.optString("en") ?: "", n?.optString("ar") ?: "")
+        )
+    }
+} catch (e: Exception) {
+    null
+}
 
 private fun JSONObject.l(key: String): L {
     val o = optJSONObject(key) ?: return L("", "")
@@ -83,7 +115,7 @@ object CatalogRepo {
 
     fun cached(ctx: Context): List<AppItem>? = try {
         val f = File(ctx.filesDir, "apps.json")
-        if (f.exists()) parseCatalog(f.readText()) else null
+        if (f.exists()) { val t = f.readText(); Meta.store = parseStore(t); parseCatalog(t) } else null
     } catch (e: Exception) {
         null
     }
@@ -95,6 +127,7 @@ object CatalogRepo {
         c.readTimeout = 8000
         val text = c.inputStream.bufferedReader().use { it.readText() }
         val list = parseCatalog(text)
+        Meta.store = parseStore(text)
         File(ctx.filesDir, "apps.json").writeText(text)
         list
     } catch (e: Exception) {
