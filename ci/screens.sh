@@ -22,7 +22,7 @@ adb install -r apk/*.apk || exit 1
 adb shell settings put global hide_error_dialogs 1 || true
 adb shell cmd uimode night yes || true
 shot() { adb exec-out screencap -p > "shots/$1.png"; }
-go() { adb shell am start -S -n $PKG/.MainActivity "$@" > /dev/null 2>&1; sleep 9; }
+go() { adb shell am start -S -n $PKG/.MainActivity --es ob skip "$@" > /dev/null 2>&1; sleep 9; }
 go; shot 01-today-dark
 adb shell input swipe 540 1800 540 700 500; sleep 2; shot 02-today-scrolled
 go --es tab games; shot 03-games
