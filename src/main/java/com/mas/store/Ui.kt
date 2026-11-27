@@ -148,15 +148,22 @@ fun Modifier.pressScale(onClick: () -> Unit): Modifier = composed {
     this.graphicsLayer { scaleX = s; scaleY = s }.clickable(interactionSource = src, indication = null, onClick = onClick)
 }
 
-/** Fade + rise entrance, staggered by index. */
+object RevealClock {
+    @Volatile var t = System.currentTimeMillis()
+}
+
+/** Fade + rise entrance, staggered by index. Only plays right after a tab change or app start, never while scrolling. */
 @Composable
 fun Reveal(index: Int, content: @Composable () -> Unit) {
-    val a = remember { Animatable(0f) }
+    val fresh = System.currentTimeMillis() - RevealClock.t < 1200
+    val a = remember { Animatable(if (fresh) 0f else 1f) }
     LaunchedEffect(Unit) {
-        delay((index.coerceAtMost(8) * 55).toLong())
-        a.animateTo(1f, tween(480))
+        if (a.value < 1f) {
+            delay((index.coerceAtMost(6) * 45).toLong())
+            a.animateTo(1f, tween(380))
+        }
     }
-    Box(Modifier.graphicsLayer { alpha = a.value; translationY = (1f - a.value) * 36f }) { content() }
+    Box(Modifier.graphicsLayer { alpha = a.value; translationY = (1f - a.value) * 28f }) { content() }
 }
 
 fun Modifier.recordTo(layer: GraphicsLayer): Modifier = this.drawWithContent {
@@ -276,7 +283,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 label = "tabs"
             ) { t ->
                 when (t) {
-                    0 -> TodayScreen(apps, { selected = it }, { tab = 4 })
+                    0 -> TodayScreen(apps, { selected = it }, { tab = 4; RevealClock.t = System.currentTimeMillis() })
                     1 -> ListScreen(tr("Games", "الألعاب"), apps.filter { it.category == "game" }, tr("Games coming soon", "الألعاب قريبًا")) { selected = it }
                     2 -> ListScreen(tr("Apps", "التطبيقات"), apps.filter { it.category != "game" }, tr("Apps coming soon", "التطبيقات قريبًا")) { selected = it }
                     3 -> SearchScreen(apps) { selected = it }
@@ -289,7 +296,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 }
             }
           }
-            Box(Modifier.align(Alignment.BottomCenter)) { Dock(tab, srcLayer) { tab = it } }
+            Box(Modifier.align(Alignment.BottomCenter)) { Dock(tab, srcLayer) { tab = it; RevealClock.t = System.currentTimeMillis() } }
             AnimatedVisibility(
                 visible = selected != null,
                 enter = fadeIn(tween(220)) + slideInVertically(tween(320)) { it / 8 },
@@ -358,10 +365,15 @@ fun GetButton(app: AppItem, modifier: Modifier = Modifier, large: Boolean = fals
     val base = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.07f)
     val h = if (large) 40 else 30
     val w = if (large) 128 else 76
+    if (dl is Dl.Prog) {
+        Box(modifier.height(h.dp).width(w.dp), contentAlignment = Alignment.Center) {
+            ProgressRing(frac, if (large) 40 else 32)
+        }
+        return
+    }
     Box(
         modifier.height(h.dp).width(w.dp).clip(shape).background(base).pressScale {
             when {
-                dl is Dl.Prog -> {}
                 upToDate -> Downloads.open(ctx, app.pkg)
                 dl is Dl.Ready && java.io.File(dl.path).exists() -> Downloads.install(ctx, dl.path)
                 else -> Downloads.start(ctx, app)
@@ -369,11 +381,33 @@ fun GetButton(app: AppItem, modifier: Modifier = Modifier, large: Boolean = fals
         },
         contentAlignment = Alignment.Center
     ) {
-        if (dl is Dl.Prog) Box(Modifier.fillMaxHeight().fillMaxWidth(frac).background(accent()).align(Alignment.CenterStart))
         Text(
-            label, color = if (dl is Dl.Prog && frac > 0.5f) onAccent() else accent(),
+            label, color = accent(),
             fontWeight = FontWeight.Bold, fontSize = if (large) 15.sp else 13.sp, maxLines = 1
         )
+    }
+}
+
+@Composable
+fun ProgressRing(frac: Float, size: Int) {
+    val dark = LocalDark.current
+    val ring = accent()
+    val track = if (dark) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.10f)
+    val fill = if (dark) Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.06f)))
+        else Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.95f), Color.White.copy(alpha = 0.6f)))
+    val stroke = if (dark) Color.White.copy(alpha = 0.22f) else Color(0xFFDDE1E7)
+    Box(
+        Modifier.size(size.dp).clip(androidx.compose.foundation.shape.CircleShape).background(fill)
+            .border(BorderStroke(0.8.dp, stroke), androidx.compose.foundation.shape.CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(Modifier.fillMaxSize().padding((size / 6).dp)) {
+            val sw = 2.6.dp.toPx()
+            drawArc(track, 0f, 360f, false, style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
+            drawArc(ring, -90f, 360f * frac.coerceIn(0.02f, 1f), false,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(sw, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        }
+        Text((frac * 100).toInt().toString(), color = textColor(), fontSize = (size / 4).sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -492,9 +526,13 @@ fun Hero(app: AppItem, onClick: () -> Unit) {
             .border(BorderStroke(0.8.dp, Color.White.copy(alpha = 0.22f)), shape)
             .pressScale(onClick)
     ) {
-        AsyncImage(
-            model = app.icon, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().scale(1.7f).blur(46.dp).graphicsLayer { alpha = 0.55f }
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    listOf(Color(app.color).copy(alpha = 0.60f), Color(app.color).copy(alpha = 0.18f), Color.Transparent),
+                    center = Offset(540f, 420f), radius = 900f
+                )
+            )
         )
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.55f)))))
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
