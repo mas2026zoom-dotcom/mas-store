@@ -36,6 +36,7 @@ go --es demo update; shot 05c-update-dark
 go --es demo onboard; shot 05e-onboard-dark
 go --es demo force; shot 05d-force-dark
 go --es open alsalah; shot 06-detail
+go --es open alsalah --es demo viewer; shot 06b-viewer
 adb shell input swipe 540 1800 540 600 500; sleep 2; shot 07-detail-scrolled
 adb shell input swipe 540 1800 540 300 500; sleep 2; shot 08-detail-bottom
 adb shell cmd uimode night no || true
