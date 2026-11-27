@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.toIntSize
 import androidx.activity.compose.BackHandler
@@ -82,6 +83,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
@@ -166,10 +168,8 @@ fun Reveal(index: Int, content: @Composable () -> Unit) {
     Box(Modifier.graphicsLayer { alpha = a.value; translationY = (1f - a.value) * 28f }) { content() }
 }
 
-fun Modifier.recordTo(layer: GraphicsLayer): Modifier = this.drawWithContent {
-    layer.record { this@drawWithContent.drawContent() }
-    drawLayer(layer)
-}
+/** Kept for API compatibility. Recording the whole screen every frame was a main cause of lag, so it is a no-op now. */
+fun Modifier.recordTo(layer: GraphicsLayer): Modifier = this
 
 /** Real backdrop blur (Android 12+): redraws the recorded content behind this surface through a blur RenderEffect. */
 @Composable
@@ -180,16 +180,9 @@ fun Modifier.liveGlass(source: GraphicsLayer, shape: Shape, blur: Float = 40f, t
     val tint = if (dark) Color(0xFF2B2C30).copy(alpha = tintAlpha) else Color.White.copy(alpha = tintAlpha)
     val edge = if (dark) Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.06f)))
         else Brush.verticalGradient(listOf(Color.White, Color(0xFFD5DAE1).copy(alpha = 0.8f)))
-    return this.onGloballyPositioned { pos = it.positionInRoot() }
-        .clip(shape)
-        .drawBehind {
-            if (Build.VERSION.SDK_INT >= 31) {
-                blurLayer.renderEffect = BlurEffect(blur, blur, TileMode.Clamp)
-                blurLayer.record(size.toIntSize()) { translate(-pos.x, -pos.y) { drawLayer(source) } }
-                drawLayer(blurLayer)
-            }
-            drawRect(tint)
-        }
+    val t2 = if (dark) Color(0xFF2B2C30).copy(alpha = tintAlpha.coerceAtLeast(0.86f)) else Color.White.copy(alpha = tintAlpha.coerceAtLeast(0.88f))
+    return this.clip(shape)
+        .drawBehind { drawRect(t2) }
         .border(BorderStroke(0.8.dp, edge), shape)
 }
 
@@ -277,24 +270,33 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
         Box(Modifier.fillMaxSize().background(bgColor())) {
           Box(Modifier.fillMaxSize().recordTo(srcLayer).background(bgColor())) {
             Ambient()
-            AnimatedContent(
-                targetState = tab,
-                transitionSpec = {
-                    (fadeIn(tween(260)) + slideInVertically(tween(260)) { it / 40 }) togetherWith fadeOut(tween(120))
-                },
-                label = "tabs"
-            ) { t ->
-                when (t) {
-                    0 -> TodayScreen(apps, { selected = it }, { tab = 4; RevealClock.t = System.currentTimeMillis() })
-                    1 -> ListScreen(tr("Games", "الألعاب"), apps.filter { it.category == "game" }, tr("Games coming soon", "الألعاب قريبًا")) { selected = it }
-                    2 -> ListScreen(tr("Apps", "التطبيقات"), apps.filter { it.category != "game" }, tr("Apps coming soon", "التطبيقات قريبًا")) { selected = it }
-                    3 -> SearchScreen(apps) { selected = it }
-                    else -> SettingsScreen(apps, su, needUpdate, theme, { theme = it; prefs.edit().putInt("theme", it).apply() }, {
-                        scope.launch {
-                            val r = withContext(Dispatchers.IO) { CatalogRepo.fetchRemote(ctx) }
-                            if (r != null) apps = r
+            val visited = remember { mutableSetOf(0) }
+            visited.add(tab)
+            for (t in 0..4) if (t in visited) key(t) {
+                val active = tab == t
+                val al by androidx.compose.animation.core.animateFloatAsState(
+                    if (active) 1f else 0f,
+                    if (active) tween(160) else androidx.compose.animation.core.snap(), label = "tabalpha")
+                Box(
+                    Modifier.fillMaxSize()
+                        .graphicsLayer { alpha = al }
+                        .layout { m, c ->
+                            val p = m.measure(c)
+                            layout(p.width, p.height) { if (active) p.place(0, 0) else p.place(100000, 0) }
                         }
-                    }) { selected = it }
+                ) {
+                    when (t) {
+                        0 -> TodayScreen(apps, { selected = it }, { tab = 4; RevealClock.t = System.currentTimeMillis() })
+                        1 -> ListScreen(tr("Games", "الألعاب"), apps.filter { it.category == "game" }, tr("Games coming soon", "الألعاب قريبًا")) { selected = it }
+                        2 -> ListScreen(tr("Apps", "التطبيقات"), apps.filter { it.category != "game" }, tr("Apps coming soon", "التطبيقات قريبًا")) { selected = it }
+                        3 -> SearchScreen(apps) { selected = it }
+                        else -> SettingsScreen(apps, su, needUpdate, theme, { theme = it; prefs.edit().putInt("theme", it).apply() }, {
+                            scope.launch {
+                                val r = withContext(Dispatchers.IO) { CatalogRepo.fetchRemote(ctx) }
+                                if (r != null) apps = r
+                            }
+                        }) { selected = it }
+                    }
                 }
             }
           }
