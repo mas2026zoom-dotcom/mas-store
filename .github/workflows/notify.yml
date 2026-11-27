@@ -1,0 +1,45 @@
+name: Notify new apps and updates
+
+on:
+  push:
+    branches: [main]
+    paths: ['catalog/apps.json']
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Send FCM to topic
+        env:
+          FCM_SA: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FCM_SA" ]; then echo "FCM_SERVICE_ACCOUNT not set, skipping"; exit 0; fi
+          pip install --quiet google-auth requests
+          git show HEAD^:catalog/apps.json > /tmp/old.json 2>/dev/null || echo '{"apps":[]}' > /tmp/old.json
+          printf '%s' "$FCM_SA" > /tmp/sa.json
+          python3 - <<'PY'
+          import json, requests
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import Request
+          old = {a['id']: a for a in json.load(open('/tmp/old.json')).get('apps', [])}
+          new = json.load(open('catalog/apps.json')).get('apps', [])
+          sa = json.load(open('/tmp/sa.json'))
+          creds = service_account.Credentials.from_service_account_file('/tmp/sa.json', scopes=['https://www.googleapis.com/auth/firebase.messaging'])
+          creds.refresh(Request())
+          def send(title, body, app_id):
+              r = requests.post('https://fcm.googleapis.com/v1/projects/%s/messages:send' % sa['project_id'],
+                  headers={'Authorization': 'Bearer ' + creds.token},
+                  json={'message': {'topic': 'store', 'data': {'title': title, 'body': body, 'appId': app_id}, 'android': {'priority': 'HIGH'}}})
+              print(app_id, r.status_code, r.text[:200])
+          for a in new:
+              nm = (a.get('name') or {}).get('en') or a['id']
+              nar = (a.get('name') or {}).get('ar') or nm
+              o = old.get(a['id'])
+              if o is None:
+                  send('MAS STORE: ' + nm, 'New in the store: ' + nar, a['id'])
+              elif a.get('versionCode', 0) > o.get('versionCode', 0):
+                  send('MAS STORE: ' + nm, 'Update available: v' + str(a.get('version', '')), a['id'])
+          PY
