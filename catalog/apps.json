@@ -4,8 +4,14 @@
     {
       "id": "alsalah",
       "package": "com.mas.alsalah",
-      "name": { "en": "Al-Salah", "ar": "الصلاة" },
-      "subtitle": { "en": "Prayer times, Qibla and Quran", "ar": "مواقيت الصلاة والقبلة والمصحف" },
+      "name": {
+        "en": "Al-Salah",
+        "ar": "الصلاة"
+      },
+      "subtitle": {
+        "en": "Prayer times, Qibla and Quran",
+        "ar": "مواقيت الصلاة والقبلة والمصحف"
+      },
       "category": "app",
       "icon": "https://raw.githubusercontent.com/mas2026zoom-dotcom/mas-store/main/catalog/icons/alsalah.png",
       "color": "#0B6B4B",
@@ -29,5 +35,18 @@
       },
       "featured": true
     }
-  ]
+  ],
+  "store": {
+    "version": "1.3.0",
+    "versionCode": 5,
+    "apk": "https://github.com/mas2026zoom-dotcom/mas-store/releases/download/store-apk/mas-store-debug.apk",
+    "size": 17645351,
+    "sha256": "",
+    "force": false,
+    "minVersionCode": 0,
+    "notes": {
+      "en": "Smoother scrolling, a small glass download ring, full-screen screenshots and light/dark mode.",
+      "ar": "تمرير أنعم، دائرة تحميل زجاجية صغيرة، عرض الصور بالشاشة الكاملة، ووضع فاتح وداكن."
+    }
+  }
 }
