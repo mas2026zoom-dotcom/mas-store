@@ -206,7 +206,23 @@ fun Modifier.glass(radius: Int = 20, strong: Boolean = false): Modifier {
 fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, getFlag: String?, demo: String? = null) {
     val ctx = LocalContext.current
     val ar = LocalConfiguration.current.locales[0].language == "ar"
-    val dark = isSystemInDarkTheme()
+    val prefs = remember { ctx.getSharedPreferences("mas", android.content.Context.MODE_PRIVATE) }
+    var theme by remember { mutableIntStateOf(prefs.getInt("theme", 0)) }
+    val sysDark = isSystemInDarkTheme()
+    val dark = when (theme) { 1 -> false; 2 -> true; else -> sysDark }
+    var onboarded by remember {
+        mutableStateOf(
+            prefs.getBoolean("onboarded", false) ||
+                (androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled() && ctx.packageManager.canRequestPackageInstalls())
+        )
+    }
+    androidx.compose.runtime.SideEffect {
+        (ctx as? android.app.Activity)?.window?.let { w ->
+            val c = androidx.core.view.WindowCompat.getInsetsController(w, w.decorView)
+            c.isAppearanceLightStatusBars = !dark
+            c.isAppearanceLightNavigationBars = !dark
+        }
+    }
     var apps by remember { mutableStateOf(CatalogRepo.bundled(ctx)) }
     var tab by remember {
         mutableIntStateOf(when (startTab) { "games" -> 1; "apps" -> 2; "search" -> 3; "settings" -> 4; else -> 0 })
@@ -264,7 +280,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                     1 -> ListScreen(tr("Games", "الألعاب"), apps.filter { it.category == "game" }, tr("Games coming soon", "الألعاب قريبًا")) { selected = it }
                     2 -> ListScreen(tr("Apps", "التطبيقات"), apps.filter { it.category != "game" }, tr("Apps coming soon", "التطبيقات قريبًا")) { selected = it }
                     3 -> SearchScreen(apps) { selected = it }
-                    else -> SettingsScreen(apps, su, needUpdate, {
+                    else -> SettingsScreen(apps, su, needUpdate, theme, { theme = it; prefs.edit().putInt("theme", it).apply() }, {
                         scope.launch {
                             val r = withContext(Dispatchers.IO) { CatalogRepo.fetchRemote(ctx) }
                             if (r != null) apps = r
@@ -282,7 +298,8 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 val a = selected
                 if (a != null) DetailScreen(a) { selected = null } else Box(Modifier.fillMaxSize())
             }
-            if (needUpdate && su != null && (forced || !later)) UpdateSheet(su, forced) { later = true }
+            if (demo == "onboard" || (!onboarded && !(needUpdate && forced))) Onboarding { prefs.edit().putBoolean("onboarded", true).apply(); onboarded = true; if (demo == "onboard") later = true }
+            if (needUpdate && su != null && (forced || !later) && (onboarded || forced) && demo != "onboard") UpdateSheet(su, forced) { later = true }
         }
     }
 }
@@ -839,7 +856,7 @@ fun UpdateSheet(store: StoreInfo, forced: Boolean, onLater: () -> Unit) {
 }
 
 @Composable
-fun SettingsScreen(apps: List<AppItem>, store: StoreInfo?, needUpdate: Boolean, onCheck: () -> Unit, onOpen: (AppItem) -> Unit) {
+fun SettingsScreen(apps: List<AppItem>, store: StoreInfo?, needUpdate: Boolean, theme: Int, onTheme: (Int) -> Unit, onCheck: () -> Unit, onOpen: (AppItem) -> Unit) {
     val ctx = LocalContext.current
     val tick = LocalTick.current
     val pi = remember { ctx.packageManager.getPackageInfo(ctx.packageName, 0) }
@@ -900,6 +917,17 @@ fun SettingsScreen(apps: List<AppItem>, store: StoreInfo?, needUpdate: Boolean, 
             }
         }
         items(updates.size) { i -> AppRow(updates[i]) { onOpen(updates[i]) } }
+        item { SectionTitle(tr("Appearance", "المظهر")) }
+        item {
+            Row(
+                Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Chip(tr("System", "حسب الجهاز"), theme == 0) { onTheme(0) }
+                Chip(tr("Light", "فاتح"), theme == 1) { onTheme(1) }
+                Chip(tr("Dark", "داكن"), theme == 2) { onTheme(2) }
+            }
+        }
         item { SectionTitle(tr("Device", "الجهاز")) }
         item {
             Column(Modifier.padding(horizontal = 18.dp).fillMaxWidth().glass(22).padding(horizontal = 16.dp)) {
@@ -931,6 +959,68 @@ fun SettingsScreen(apps: List<AppItem>, store: StoreInfo?, needUpdate: Boolean, 
         item {
             Column(Modifier.fillMaxWidth().padding(top = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("MAS STORE", color = subColor(), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+            }
+        }
+    }
+}
+
+
+@Composable
+fun PermRow(title: String, sub: String, ok: Boolean, onAllow: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).padding(end = 10.dp)) {
+            Text(title, color = textColor(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text(sub, color = subColor(), fontSize = 12.5.sp)
+        }
+        if (ok) Text("\u2713", color = accent(), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        else SmallButton(tr("Allow", "سماح"), onAllow)
+    }
+}
+
+@Composable
+fun Onboarding(onDone: () -> Unit) {
+    val ctx = LocalContext.current
+    val tick = LocalTick.current
+    var notif by remember { mutableStateOf(androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()) }
+    val installOk = remember(tick) { ctx.packageManager.canRequestPackageInstalls() }
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { notif = androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled() }
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.padding(24.dp).fillMaxWidth().glass(30, strong = true).padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Logo(76)
+            Spacer(Modifier.height(12.dp))
+            Text(tr("Welcome to MAS STORE", "أهلًا في MAS STORE"), color = textColor(), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(4.dp))
+            Text(tr("Two quick permissions so everything works.", "محتاجين إذنين سريعين علشان كل حاجة تشتغل."), color = subColor(), fontSize = 13.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(14.dp))
+            PermRow(tr("Notifications", "الإشعارات"), tr("Hear about new apps and updates instantly", "اعرف بالجديد والتحديثات فورًا"), notif) {
+                if (Build.VERSION.SDK_INT >= 33) launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                else {
+                    val i = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try { ctx.startActivity(i) } catch (e: Exception) { }
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(0.6.dp).background(hairline()))
+            PermRow(tr("Install apps", "تثبيت التطبيقات"), tr("Let MAS STORE install what you download", "اسمح للمتجر يثبّت اللي بتحمّله"), installOk) {
+                val i = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:" + ctx.packageName))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                try { ctx.startActivity(i) } catch (e: Exception) { }
+            }
+            Spacer(Modifier.height(16.dp))
+            Box(
+                Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(50)).background(accent()).pressScale(onDone),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(tr("Continue", "متابعة"), color = onAccent(), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
