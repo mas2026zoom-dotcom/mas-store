@@ -101,8 +101,8 @@ val LocalAr = compositionLocalOf { false }
 val LocalDark = compositionLocalOf { true }
 val LocalTick = compositionLocalOf { 0 }
 
-private val Accent = Color(0xFF3D7BFF)
-private val Violet = Color(0xFF8B5CFF)
+@Composable fun accent(): Color = if (LocalDark.current) Color.White else Color(0xFF0A0A0A)
+@Composable fun onAccent(): Color = if (LocalDark.current) Color.Black else Color.White
 
 @Composable
 fun tr(en: String, ar: String): String = if (LocalAr.current) ar else en
@@ -113,9 +113,9 @@ fun sizeText(bytes: Long, ar: Boolean): String {
     return String.format(Locale.ROOT, "%.1f", mb) + if (ar) " م.ب" else " MB"
 }
 
-@Composable fun bgColor(): Color = if (LocalDark.current) Color(0xFF08080D) else Color(0xFFF3F4F9)
-@Composable fun textColor(): Color = if (LocalDark.current) Color(0xFFF5F5F8) else Color(0xFF14141A)
-@Composable fun subColor(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.58f) else Color(0xFF14141A).copy(alpha = 0.52f)
+@Composable fun bgColor(): Color = if (LocalDark.current) Color.Black else Color.White
+@Composable fun textColor(): Color = if (LocalDark.current) Color.White else Color(0xFF0A0A0A)
+@Composable fun subColor(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.58f) else Color.Black.copy(alpha = 0.52f)
 @Composable fun hairline(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.07f)
 
 /** Press feedback: springy scale-down, no ripple. */
@@ -148,11 +148,11 @@ fun Modifier.glass(radius: Int = 20, strong: Boolean = false): Modifier {
     val fill = if (dark) Brush.verticalGradient(
         listOf(Color.White.copy(alpha = if (strong) 0.13f else 0.09f), Color.White.copy(alpha = 0.04f))
     ) else Brush.verticalGradient(
-        listOf(Color.White.copy(alpha = if (strong) 0.95f else 0.82f), Color.White.copy(alpha = 0.62f))
+        listOf(Color.Black.copy(alpha = if (strong) 0.07f else 0.05f), Color.Black.copy(alpha = 0.02f))
     )
     val stroke = Brush.verticalGradient(
         if (dark) listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.05f))
-        else listOf(Color.White, Color.White.copy(alpha = 0.5f))
+        else listOf(Color.Black.copy(alpha = 0.14f), Color.Black.copy(alpha = 0.04f))
     )
     return this.clip(shape).background(fill).border(BorderStroke(0.8.dp, stroke), shape)
 }
@@ -221,14 +221,13 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
 fun Ambient() {
     val dark = LocalDark.current
     Canvas(Modifier.fillMaxSize()) {
-        val a = if (dark) 0.26f else 0.20f
+        val a = if (dark) 0.12f else 0.07f
         fun blob(c: Color, x: Float, y: Float, r: Float) = drawCircle(
             Brush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), Offset(size.width * x, size.height * y), size.width * r),
             radius = size.width * r, center = Offset(size.width * x, size.height * y)
         )
-        blob(Accent, 0.05f, 0.05f, 0.75f)
-        blob(Violet, 1.0f, 0.42f, 0.7f)
-        blob(Color(0xFFFF6FA8), 0.1f, 1.0f, 0.6f)
+        blob(if (dark) Color.White else Color.Black, 0.05f, 0.0f, 0.8f)
+        blob(if (dark) Color.White else Color.Black, 1.0f, 0.55f, 0.6f)
     }
 }
 
@@ -236,7 +235,7 @@ fun Ambient() {
 fun AppIcon(app: AppItem, size: Int, radius: Int = (size * 0.225f).toInt()) {
     val shape = RoundedCornerShape(radius.dp)
     Box(
-        Modifier.size(size.dp).clip(shape).background(Color(app.color).copy(alpha = 0.4f))
+        Modifier.size(size.dp).clip(shape).background(Color.Gray.copy(alpha = 0.25f))
             .border(BorderStroke(0.6.dp, Color.White.copy(alpha = 0.25f)), shape)
     ) {
         AsyncImage(model = app.icon, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -268,7 +267,7 @@ fun GetButton(app: AppItem, modifier: Modifier = Modifier, large: Boolean = fals
     val frac by animateFloatAsState(target, tween(250), label = "dl")
     val dark = LocalDark.current
     val shape = RoundedCornerShape(50)
-    val base = if (dark) Color.White.copy(alpha = 0.14f) else Color(0xFF14141A).copy(alpha = 0.07f)
+    val base = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.07f)
     val h = if (large) 40 else 30
     val w = if (large) 128 else 76
     Box(
@@ -282,9 +281,9 @@ fun GetButton(app: AppItem, modifier: Modifier = Modifier, large: Boolean = fals
         },
         contentAlignment = Alignment.Center
     ) {
-        if (dl is Dl.Prog) Box(Modifier.fillMaxHeight().fillMaxWidth(frac).background(Accent).align(Alignment.CenterStart))
+        if (dl is Dl.Prog) Box(Modifier.fillMaxHeight().fillMaxWidth(frac).background(accent()).align(Alignment.CenterStart))
         Text(
-            label, color = if (dl is Dl.Prog && frac > 0.5f) Color.White else Accent,
+            label, color = if (dl is Dl.Prog && frac > 0.5f) onAccent() else accent(),
             fontWeight = FontWeight.Bold, fontSize = if (large) 15.sp else 13.sp, maxLines = 1
         )
     }
@@ -304,15 +303,15 @@ fun Dock(tab: Int, onTab: (Int) -> Unit) {
         Modifier.windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 22.dp, vertical = 10.dp).fillMaxWidth().height(62.dp)
             .clip(shape)
-            .background(if (dark) Color(0xFF16161D).copy(alpha = 0.90f) else Color.White.copy(alpha = 0.90f))
-            .border(BorderStroke(0.8.dp, if (dark) Color.White.copy(alpha = 0.16f) else Color.White), shape)
+            .background(if (dark) Color(0xFF111111).copy(alpha = 0.92f) else Color(0xFFF4F4F4).copy(alpha = 0.94f))
+            .border(BorderStroke(0.8.dp, if (dark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.10f)), shape)
             .padding(5.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         items.forEachIndexed { i, (icon, label) ->
             val on = tab == i
-            val c by animateColorAsState(if (on) Accent else subColor(), tween(200), label = "dockc")
-            val pill by animateColorAsState(if (on) Accent.copy(alpha = 0.16f) else Color.Transparent, tween(200), label = "dockp")
+            val c by animateColorAsState(if (on) accent() else subColor(), tween(200), label = "dockc")
+            val pill by animateColorAsState(if (on) accent().copy(alpha = 0.14f) else Color.Transparent, tween(200), label = "dockp")
             Column(
                 Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(25.dp)).background(pill).pressScale { onTab(i) },
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
@@ -394,11 +393,10 @@ fun TodayScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
 @Composable
 fun Hero(app: AppItem, onClick: () -> Unit) {
     val ar = LocalAr.current
-    val c = Color(app.color)
-    val shape = RoundedCornerShape(26.dp)
+        val shape = RoundedCornerShape(26.dp)
     Box(
         Modifier.padding(horizontal = 18.dp).fillMaxWidth().height(330.dp).clip(shape)
-            .background(Brush.verticalGradient(listOf(c, c.copy(alpha = 0.55f), Color(0xFF0B0B12))))
+            .background(Brush.verticalGradient(listOf(Color(0xFF2B2B2F), Color(0xFF121214), Color.Black)))
             .border(BorderStroke(0.8.dp, Color.White.copy(alpha = 0.22f)), shape)
             .pressScale(onClick)
     ) {
@@ -477,14 +475,14 @@ fun EmptyState(text: String) {
 fun Chip(label: String, on: Boolean, onClick: () -> Unit) {
     val dark = LocalDark.current
     val bg by animateColorAsState(
-        if (on) Accent else if (dark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.8f), tween(180), label = "chip"
+        if (on) accent() else if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.05f), tween(180), label = "chip"
     )
     val shape = RoundedCornerShape(50)
     Box(
         Modifier.clip(shape).background(bg).border(BorderStroke(0.6.dp, hairline()), shape).pressScale(onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Text(label, color = if (on) Color.White else textColor(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = if (on) onAccent() else textColor(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -538,7 +536,7 @@ fun SearchScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
                     if (q.isEmpty()) Text(tr("Apps and games", "تطبيقات وألعاب"), color = subColor(), fontSize = 16.sp)
                     BasicTextField(
                         value = q, onValueChange = { q = it }, singleLine = true,
-                        textStyle = TextStyle(color = textColor(), fontSize = 16.sp), cursorBrush = SolidColor(Accent),
+                        textStyle = TextStyle(color = textColor(), fontSize = 16.sp), cursorBrush = SolidColor(accent()),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -562,11 +560,10 @@ fun SearchScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
 fun DetailScreen(app: AppItem, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val ar = LocalAr.current
-    val c = Color(app.color)
-    val scroll = rememberScrollState()
+        val scroll = rememberScrollState()
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(bgColor())) {
-        Box(Modifier.fillMaxWidth().height(380.dp).background(Brush.verticalGradient(listOf(c.copy(alpha = 0.55f), Color.Transparent))))
+        Box(Modifier.fillMaxWidth().height(380.dp).background(Brush.verticalGradient(listOf(accent().copy(alpha = 0.12f), Color.Transparent))))
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 40.dp)) {
             Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars).height(70.dp))
             Reveal(0) {
@@ -575,7 +572,7 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
                     Column(Modifier.padding(horizontal = 16.dp).weight(1f)) {
                         Text(app.name.get(ar), color = textColor(), fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, letterSpacing = (-0.3).sp)
                         Text(app.subtitle.get(ar), color = subColor(), fontSize = 13.5.sp, maxLines = 2)
-                        Text("MAS", color = Accent, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                        Text("MAS", color = accent(), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
                         Spacer(Modifier.height(10.dp))
                         GetButton(app, large = true)
                     }
@@ -619,7 +616,7 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
                 maxLines = if (expanded) 40 else 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 22.dp)
             )
             Text(
-                if (expanded) tr("less", "أقل") else tr("more", "المزيد"), color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                if (expanded) tr("less", "أقل") else tr("more", "المزيد"), color = accent(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 6.dp).pressScale { expanded = !expanded }
             )
             SectionTitle(tr("Information", "معلومات"))
@@ -632,7 +629,7 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
             }
             val dl = Downloads.states[app.id]
             if (dl is Dl.Err) {
-                Text(dl.msg, color = Color(0xFFFF6B6B), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp))
+                Text(dl.msg, color = textColor(), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp))
             }
         }
         // top bar: always-visible back and share, title fades in on scroll
