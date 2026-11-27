@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1029725936295",
+    "project_id": "mas-store2",
+    "storage_bucket": "mas-store2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029725936295:android:933d65d959b9c97a675982",
+        "android_client_info": {
+          "package_name": "com.mas.store"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDoCZq224GVu3NWXarWwOtTMeu9V3AdBw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
