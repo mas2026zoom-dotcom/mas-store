@@ -24,6 +24,9 @@ adb shell cmd uimode night yes || true
 shot() { adb exec-out screencap -p > "shots/$1.png"; }
 go() { adb shell am start -S -n $PKG/.MainActivity --es ob skip "$@" > /dev/null 2>&1; sleep 9; }
 go; shot 01-today-dark
+adb shell dumpsys gfxinfo $PKG reset > /dev/null 2>&1
+for k in 1 2 3 4 5 6; do adb shell input swipe 540 1800 540 600 250; sleep 0.4; adb shell input swipe 540 600 540 1800 250; sleep 0.4; done
+adb shell dumpsys gfxinfo $PKG | grep -E 'Total frames|Janky frames|50th|90th|95th|99th' > shots/jank.txt 2>&1 || true
 adb shell input swipe 540 1800 540 700 500; sleep 2; shot 02-today-scrolled
 go --es tab games; shot 03-games
 go --es tab apps; shot 04-apps
