@@ -53,6 +53,36 @@ object Downloads {
         ctx.startActivity(i)
     }
 
+    private val queue = ArrayDeque<String>()
+    private var installerOpen = false
+
+    private fun queueInstall(ctx: Context, path: String) {
+        synchronized(queue) { queue.addLast(path) }
+        pump(ctx)
+    }
+
+    private fun pump(ctx: Context) {
+        var next: String? = null
+        synchronized(queue) {
+            if (!installerOpen && queue.isNotEmpty()) {
+                next = queue.removeFirst()
+                installerOpen = true
+            }
+        }
+        val p = next ?: return
+        try { install(ctx, p) } catch (e: Exception) { installerOpen = false }
+    }
+
+    /** Called when the store comes back to the foreground: the previous installer is closed, so open the next one. */
+    fun onResumed(ctx: Context) {
+        installerOpen = false
+        pump(ctx)
+    }
+
+    fun updateAll(ctx: Context, list: List<AppItem>) {
+        list.forEach { start(ctx, it) }
+    }
+
     fun start(ctx: Context, app: AppItem) {
         if (states[app.id] is Dl.Prog) return
         val appCtx = ctx.applicationContext
@@ -95,7 +125,7 @@ object Downloads {
                 if (out.exists()) out.delete()
                 part.renameTo(out)
                 states[app.id] = Dl.Ready(out.absolutePath)
-                install(appCtx, out.absolutePath)
+                queueInstall(appCtx, out.absolutePath)
             } catch (e: Exception) {
                 states[app.id] = Dl.Err(e.javaClass.simpleName + ": " + (e.message ?: ""))
             }
