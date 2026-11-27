@@ -17,10 +17,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         Push.ensureChannel(this)
         Push.subscribe()
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
-                .launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
         val tab = intent.getStringExtra("tab")
         val open = intent.getStringExtra("open")
         val get = intent.getStringExtra("get")
