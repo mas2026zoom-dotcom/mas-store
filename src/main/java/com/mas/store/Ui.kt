@@ -1,6 +1,21 @@
 package com.mas.store
 
 import android.content.Intent
+import android.os.Build
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset as GOffset
+import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.toIntSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -101,8 +116,8 @@ val LocalAr = compositionLocalOf { false }
 val LocalDark = compositionLocalOf { true }
 val LocalTick = compositionLocalOf { 0 }
 
-@Composable fun accent(): Color = if (LocalDark.current) Color.White else Color(0xFF0A0A0A)
-@Composable fun onAccent(): Color = if (LocalDark.current) Color.Black else Color.White
+@Composable fun accent(): Color = if (LocalDark.current) Color(0xFFF2F2F3) else Color(0xFF2A2B2E)
+@Composable fun onAccent(): Color = if (LocalDark.current) Color(0xFF1E1F22) else Color.White
 
 @Composable
 fun tr(en: String, ar: String): String = if (LocalAr.current) ar else en
@@ -113,9 +128,9 @@ fun sizeText(bytes: Long, ar: Boolean): String {
     return String.format(Locale.ROOT, "%.1f", mb) + if (ar) " م.ب" else " MB"
 }
 
-@Composable fun bgColor(): Color = if (LocalDark.current) Color.Black else Color.White
-@Composable fun textColor(): Color = if (LocalDark.current) Color.White else Color(0xFF0A0A0A)
-@Composable fun subColor(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.58f) else Color.Black.copy(alpha = 0.52f)
+@Composable fun bgColor(): Color = if (LocalDark.current) Color(0xFF1E1F22) else Color(0xFFF5F7FA)
+@Composable fun textColor(): Color = if (LocalDark.current) Color(0xFFF4F4F5) else Color(0xFF17181A)
+@Composable fun subColor(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.58f) else Color(0xFF17181A).copy(alpha = 0.55f)
 @Composable fun hairline(): Color = if (LocalDark.current) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.07f)
 
 /** Press feedback: springy scale-down, no ripple. */
@@ -141,6 +156,33 @@ fun Reveal(index: Int, content: @Composable () -> Unit) {
     Box(Modifier.graphicsLayer { alpha = a.value; translationY = (1f - a.value) * 36f }) { content() }
 }
 
+fun Modifier.recordTo(layer: GraphicsLayer): Modifier = this.drawWithContent {
+    layer.record { this@drawWithContent.drawContent() }
+    drawLayer(layer)
+}
+
+/** Real backdrop blur (Android 12+): redraws the recorded content behind this surface through a blur RenderEffect. */
+@Composable
+fun Modifier.liveGlass(source: GraphicsLayer, shape: Shape, blur: Float = 40f, tintAlpha: Float = 0.5f): Modifier {
+    val dark = LocalDark.current
+    val blurLayer = rememberGraphicsLayer()
+    var pos by remember { mutableStateOf(GOffset.Zero) }
+    val tint = if (dark) Color(0xFF2B2C30).copy(alpha = tintAlpha) else Color.White.copy(alpha = tintAlpha)
+    val edge = if (dark) Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.06f)))
+        else Brush.verticalGradient(listOf(Color.White, Color(0xFFD5DAE1).copy(alpha = 0.8f)))
+    return this.onGloballyPositioned { pos = it.positionInRoot() }
+        .clip(shape)
+        .drawBehind {
+            if (Build.VERSION.SDK_INT >= 31) {
+                blurLayer.renderEffect = BlurEffect(blur, blur, TileMode.Clamp)
+                blurLayer.record(size.toIntSize()) { translate(-pos.x, -pos.y) { drawLayer(source) } }
+                drawLayer(blurLayer)
+            }
+            drawRect(tint)
+        }
+        .border(BorderStroke(0.8.dp, edge), shape)
+}
+
 @Composable
 fun Modifier.glass(radius: Int = 20, strong: Boolean = false): Modifier {
     val dark = LocalDark.current
@@ -148,11 +190,11 @@ fun Modifier.glass(radius: Int = 20, strong: Boolean = false): Modifier {
     val fill = if (dark) Brush.verticalGradient(
         listOf(Color.White.copy(alpha = if (strong) 0.13f else 0.09f), Color.White.copy(alpha = 0.04f))
     ) else Brush.verticalGradient(
-        listOf(Color.Black.copy(alpha = if (strong) 0.07f else 0.05f), Color.Black.copy(alpha = 0.02f))
+        listOf(Color.White.copy(alpha = if (strong) 0.95f else 0.80f), Color.White.copy(alpha = 0.55f))
     )
     val stroke = Brush.verticalGradient(
         if (dark) listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.05f))
-        else listOf(Color.Black.copy(alpha = 0.14f), Color.Black.copy(alpha = 0.04f))
+        else listOf(Color.White, Color(0xFFDDE1E7).copy(alpha = 0.7f))
     )
     return this.clip(shape).background(fill).border(BorderStroke(0.8.dp, stroke), shape)
 }
@@ -188,7 +230,9 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
     BackHandler(enabled = selected != null) { selected = null }
 
     CompositionLocalProvider(LocalAr provides ar, LocalDark provides dark, LocalTick provides tickState.intValue) {
+        val srcLayer = rememberGraphicsLayer()
         Box(Modifier.fillMaxSize().background(bgColor())) {
+          Box(Modifier.fillMaxSize().recordTo(srcLayer).background(bgColor())) {
             Ambient()
             AnimatedContent(
                 targetState = tab,
@@ -204,7 +248,8 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                     else -> SearchScreen(apps) { selected = it }
                 }
             }
-            Box(Modifier.align(Alignment.BottomCenter)) { Dock(tab) { tab = it } }
+          }
+            Box(Modifier.align(Alignment.BottomCenter)) { Dock(tab, srcLayer) { tab = it } }
             AnimatedVisibility(
                 visible = selected != null,
                 enter = fadeIn(tween(220)) + slideInVertically(tween(320)) { it / 8 },
@@ -221,13 +266,14 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
 fun Ambient() {
     val dark = LocalDark.current
     Canvas(Modifier.fillMaxSize()) {
-        val a = if (dark) 0.12f else 0.07f
+        val a = if (dark) 0.16f else 0.65f
         fun blob(c: Color, x: Float, y: Float, r: Float) = drawCircle(
             Brush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), Offset(size.width * x, size.height * y), size.width * r),
             radius = size.width * r, center = Offset(size.width * x, size.height * y)
         )
-        blob(if (dark) Color.White else Color.Black, 0.05f, 0.0f, 0.8f)
-        blob(if (dark) Color.White else Color.Black, 1.0f, 0.55f, 0.6f)
+        blob(Color.White, 0.05f, 0.0f, 0.85f)
+        blob(if (dark) Color(0xFF9AA0A8) else Color(0xFFCBD2DB), 1.0f, 0.5f, 0.7f)
+        blob(if (dark) Color.White else Color(0xFFE3E7EE), 0.0f, 1.0f, 0.6f)
     }
 }
 
@@ -290,7 +336,7 @@ fun GetButton(app: AppItem, modifier: Modifier = Modifier, large: Boolean = fals
 }
 
 @Composable
-fun Dock(tab: Int, onTab: (Int) -> Unit) {
+fun Dock(tab: Int, src: GraphicsLayer, onTab: (Int) -> Unit) {
     val items: List<Pair<ImageVector, String>> = listOf(
         Icons.Filled.Today to tr("Today", "اليوم"),
         Icons.Filled.SportsEsports to tr("Games", "الألعاب"),
@@ -302,9 +348,7 @@ fun Dock(tab: Int, onTab: (Int) -> Unit) {
     Row(
         Modifier.windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 22.dp, vertical = 10.dp).fillMaxWidth().height(62.dp)
-            .clip(shape)
-            .background(if (dark) Color(0xFF111111).copy(alpha = 0.92f) else Color(0xFFF4F4F4).copy(alpha = 0.94f))
-            .border(BorderStroke(0.8.dp, if (dark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.10f)), shape)
+            .liveGlass(src, shape, blur = 45f, tintAlpha = 0.42f)
             .padding(5.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -396,7 +440,7 @@ fun Hero(app: AppItem, onClick: () -> Unit) {
         val shape = RoundedCornerShape(26.dp)
     Box(
         Modifier.padding(horizontal = 18.dp).fillMaxWidth().height(330.dp).clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFF2B2B2F), Color(0xFF121214), Color.Black)))
+            .background(Brush.verticalGradient(listOf(Color(0xFF38393D), Color(0xFF1A1B1E), Color(0xFF121315))))
             .border(BorderStroke(0.8.dp, Color.White.copy(alpha = 0.22f)), shape)
             .pressScale(onClick)
     ) {
@@ -562,8 +606,10 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
     val ar = LocalAr.current
         val scroll = rememberScrollState()
     var expanded by remember { mutableStateOf(false) }
+    val dLayer = rememberGraphicsLayer()
     Box(Modifier.fillMaxSize().background(bgColor())) {
-        Box(Modifier.fillMaxWidth().height(380.dp).background(Brush.verticalGradient(listOf(accent().copy(alpha = 0.12f), Color.Transparent))))
+      Box(Modifier.fillMaxSize().recordTo(dLayer).background(bgColor())) {
+        Ambient()
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 40.dp)) {
             Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars).height(70.dp))
             Reveal(0) {
@@ -632,12 +678,19 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
                 Text(dl.msg, color = textColor(), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp))
             }
         }
+      }
+        val topPad = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        Box(
+            Modifier.fillMaxWidth().height(topPad + 62.dp)
+                .graphicsLayer { alpha = (scroll.value / 160f).coerceIn(0f, 1f) }
+                .liveGlass(dLayer, androidx.compose.ui.graphics.RectangleShape, blur = 45f, tintAlpha = 0.45f)
+        )
         // top bar: always-visible back and share, title fades in on scroll
         Row(
             Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(40.dp).glass(20, strong = true).pressScale { onBack() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).liveGlass(dLayer, RoundedCornerShape(20.dp), blur = 30f, tintAlpha = 0.45f).pressScale { onBack() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = textColor(), modifier = Modifier.size(21.dp))
             }
             Text(
@@ -646,7 +699,7 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp).graphicsLayer { alpha = ((scroll.value - 120) / 120f).coerceIn(0f, 1f) }
             )
             Box(
-                Modifier.size(40.dp).glass(20, strong = true).pressScale {
+                Modifier.size(40.dp).liveGlass(dLayer, RoundedCornerShape(20.dp), blur = 30f, tintAlpha = 0.45f).pressScale {
                     val i = Intent(Intent.ACTION_SEND)
                     i.type = "text/plain"
                     i.putExtra(Intent.EXTRA_TEXT, app.name.get(ar) + "\n" + app.apk)
