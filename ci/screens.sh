@@ -28,6 +28,9 @@ adb shell input swipe 540 1800 540 700 500; sleep 2; shot 02-today-scrolled
 go --es tab games; shot 03-games
 go --es tab apps; shot 04-apps
 go --es tab search; shot 05-search
+go --es tab settings; shot 05b-settings-dark
+go --es demo update; shot 05c-update-dark
+go --es demo force; shot 05d-force-dark
 go --es open alsalah; shot 06-detail
 adb shell input swipe 540 1800 540 600 500; sleep 2; shot 07-detail-scrolled
 adb shell input swipe 540 1800 540 300 500; sleep 2; shot 08-detail-bottom
@@ -36,6 +39,8 @@ sleep 3
 go; shot 09-today-light
 go --es tab apps; shot 10-apps-light
 go --es tab search; shot 11-search-light
+go --es tab settings; shot 11b-settings-light
+go --es demo update; shot 11c-update-light
 go --es open alsalah; shot 12-detail-light
 adb shell input swipe 540 1800 540 600 500; sleep 2; shot 13-detail-scrolled-light
 adb shell cmd uimode night yes || true
