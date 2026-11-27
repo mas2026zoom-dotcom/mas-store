@@ -37,16 +37,16 @@
     }
   ],
   "store": {
-    "version": "1.3.0",
-    "versionCode": 5,
-    "apk": "https://github.com/mas2026zoom-dotcom/mas-store/releases/download/store-apk/mas-store-debug.apk",
-    "size": 17645351,
+    "version": "1.3.1",
+    "versionCode": 6,
+    "apk": "https://github.com/mas2026zoom-dotcom/mas-store/releases/download/store-apk/mas-store.apk",
+    "size": 12301935,
     "sha256": "",
     "force": false,
     "minVersionCode": 0,
     "notes": {
-      "en": "Smoother scrolling, a small glass download ring, full-screen screenshots and light/dark mode.",
-      "ar": "تمرير أنعم، دائرة تحميل زجاجية صغيرة، عرض الصور بالشاشة الكاملة، ووضع فاتح وداكن."
+      "en": "Much faster tab switching, lighter glass, security hardening (release build, fewer permissions), viewer counter fix.",
+      "ar": "تبديل أسرع بكتير بين الأقسام، زجاج أخف، تأمين أقوى (نسخة release وصلاحيات أقل)، وإصلاح عداد الصور."
     }
   }
 }
