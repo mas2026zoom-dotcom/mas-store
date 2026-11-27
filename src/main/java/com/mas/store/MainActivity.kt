@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
         val open = intent.getStringExtra("open")
         val get = intent.getStringExtra("get")
         val demo = intent.getStringExtra("demo")
+        if (intent.getStringExtra("ob") == "skip") getSharedPreferences("mas", MODE_PRIVATE).edit().putBoolean("onboarded", true).apply()
         setContent { StoreApp(tick, tab, open, get, demo) }
     }
 
