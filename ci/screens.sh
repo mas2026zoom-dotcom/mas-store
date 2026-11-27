@@ -20,7 +20,6 @@ adb shell input keyevent KEYCODE_WAKEUP
 adb shell wm dismiss-keyguard || true
 adb install -r apk/*.apk || exit 1
 adb shell settings put global hide_error_dialogs 1 || true
-adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
 adb shell cmd uimode night yes || true
 shot() { adb exec-out screencap -p > "shots/$1.png"; }
 go() { adb shell am start -S -n $PKG/.MainActivity "$@" > /dev/null 2>&1; sleep 9; }
@@ -31,6 +30,7 @@ go --es tab apps; shot 04-apps
 go --es tab search; shot 05-search
 go --es tab settings; shot 05b-settings-dark
 go --es demo update; shot 05c-update-dark
+go --es demo onboard; shot 05e-onboard-dark
 go --es demo force; shot 05d-force-dark
 go --es open alsalah; shot 06-detail
 adb shell input swipe 540 1800 540 600 500; sleep 2; shot 07-detail-scrolled
