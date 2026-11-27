@@ -468,7 +468,7 @@ fun Hero(app: AppItem, onClick: () -> Unit) {
                 Text(app.name.get(ar), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(sizeText(app.size, ar) + "  •  v" + app.version, color = Color.White.copy(alpha = 0.7f), fontSize = 11.5.sp, maxLines = 1)
             }
-            GetButton(app)
+            androidx.compose.runtime.CompositionLocalProvider(LocalDark provides true) { GetButton(app) }
         }
     }
 }
