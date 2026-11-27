@@ -24,11 +24,13 @@ class MainActivity : ComponentActivity() {
         val tab = intent.getStringExtra("tab")
         val open = intent.getStringExtra("open")
         val get = intent.getStringExtra("get")
-        setContent { StoreApp(tick, tab, open, get) }
+        val demo = intent.getStringExtra("demo")
+        setContent { StoreApp(tick, tab, open, get, demo) }
     }
 
     override fun onResume() {
         super.onResume()
         tick.intValue = tick.intValue + 1
+        Downloads.onResumed(applicationContext)
     }
 }
