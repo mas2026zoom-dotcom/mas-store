@@ -24,26 +24,31 @@ adb shell cmd uimode night yes || true
 shot() { adb exec-out screencap -p > "shots/$1.png"; }
 go() { adb shell am start -S -n $PKG/.MainActivity "$@" > /dev/null 2>&1; sleep 9; }
 go; shot 01-today-dark
-go --es tab games; shot 02-games
-go --es tab apps; shot 03-apps
-go --es tab search; shot 04-search
-go --es open alsalah; shot 05-detail
-adb shell input swipe 540 1700 540 700 400; sleep 2; shot 06-detail-scrolled
+adb shell input swipe 540 1800 540 700 500; sleep 2; shot 02-today-scrolled
+go --es tab games; shot 03-games
+go --es tab apps; shot 04-apps
+go --es tab search; shot 05-search
+go --es open alsalah; shot 06-detail
+adb shell input swipe 540 1800 540 600 500; sleep 2; shot 07-detail-scrolled
+adb shell input swipe 540 1800 540 300 500; sleep 2; shot 08-detail-bottom
 adb shell cmd uimode night no || true
 sleep 3
-go; shot 07-today-light
-go --es open alsalah; shot 08-detail-light
+go; shot 09-today-light
+go --es tab apps; shot 10-apps-light
+go --es tab search; shot 11-search-light
+go --es open alsalah; shot 12-detail-light
+adb shell input swipe 540 1800 540 600 500; sleep 2; shot 13-detail-scrolled-light
 adb shell cmd uimode night yes || true
 adb shell appops set $PKG REQUEST_INSTALL_PACKAGES allow || true
 adb shell am start -S -n $PKG/.MainActivity --es open alsalah --es get 1 > /dev/null 2>&1
-sleep 4; shot 09-download-progress
+sleep 4; shot 14-download-progress
 for i in $(seq 1 30); do
   sleep 4
   adb shell uiautomator dump /sdcard/u.xml > /dev/null 2>&1
   adb pull /sdcard/u.xml /tmp/u.xml > /dev/null 2>&1
   if adb shell dumpsys window | grep -qi 'packageinstaller'; then echo "installer shown after $i"; break; fi
 done
-shot 10-installer
+shot 15-installer
 adb shell pm list packages | grep -E 'com.mas.alsalah' > shots/installed.txt || true
 ls -la shots
 adb logcat -d -s AndroidRuntime:E > shots/crash.log 2>&1 || true; [ -s shots/crash.log ] || rm -f shots/crash.log
