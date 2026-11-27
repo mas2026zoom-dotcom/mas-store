@@ -119,6 +119,7 @@ textarea{min-height:84px;resize:vertical}
   <div class="brand"><img class="mark" alt="MAS" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22bg%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ffffff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e4e8f6%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22c1%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231fb6ff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%235b4dff%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22c2%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ff5fa2%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ff9a3c%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2223%22%20fill%3D%22url%28%23bg%29%22%2F%3E%3Crect%20x%3D%22.7%22%20y%3D%22.7%22%20width%3D%2298.6%22%20height%3D%2298.6%22%20rx%3D%2222.3%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-opacity%3D%22.1%22%20stroke-width%3D%221.4%22%2F%3E%3Cg%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20fill%3D%22none%22%20stroke-width%3D%2211%22%3E%3Cpath%20d%3D%22M27%2072%20V32%20L47%2056%22%20stroke%3D%22url%28%23c1%29%22%2F%3E%3Cpath%20d%3D%22M73%2072%20V32%20L53%2056%22%20stroke%3D%22url%28%23c2%29%22%20opacity%3D%22.92%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"><div><b>MAS STORE</b><small>Admin</small></div></div>
   <button class="nav on" data-v="dash" onclick="go('dash')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>لوحة التحكم</button>
   <button class="nav" data-v="new" onclick="newApp()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>إضافة جديدة</button>
+  <button class="nav" data-v="store" onclick="go('store')"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>تحديث المتجر</button>
   <div class="sp"></div>
   <span id="demoTag" class="demo hide" style="text-align:center">وضع تجريبي</span>
   <button class="nav" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>المظهر</button>
@@ -135,6 +136,26 @@ textarea{min-height:84px;resize:vertical}
     <div class="seg" id="fseg"><button class="on" data-f="all" onclick="setF('all')">الكل</button><button data-f="app" onclick="setF('app')">تطبيقات</button><button data-f="game" onclick="setF('game')">ألعاب</button></div>
    </div>
    <div class="list" id="list"></div>
+  </div>
+
+  <div id="v_store" class="view hide">
+   <div class="top"><button class="ic" onclick="go('dash')"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><h2>تحديث تطبيق المتجر</h2></div>
+   <div class="glass sec"><h3>الإصدار الحالي المنشور</h3><p>ده اللي المستخدمين هيشوفوه لما يفتحوا المتجر. لو رقم الـ Version code هنا أكبر من المثبّت عندهم، بيظهرلهم تحديث.</p>
+    <div class="vnow" id="svnow"></div>
+    <div class="grid2"><div><label class="l">رقم الإصدار</label><input id="s_ver" class="ltr" type="text" placeholder="1.2.0"></div><div><label class="l">Version code (لازم يكون أكبر من السابق)</label><input id="s_vc" class="ltr" type="number"></div></div>
+    <div style="margin-top:14px"><label class="l">ما الجديد (عربي)</label><input id="s_nar" type="text"></div>
+    <div style="margin-top:10px"><label class="l">ما الجديد (English)</label><input id="s_nen" class="ltr" type="text"></div>
+   </div>
+   <div class="glass sec"><h3>نوع التحديث</h3><p>اختياري: المستخدم يقدر يأجله. إجباري: التطبيق يقفل لحد ما يحدّث.</p>
+    <div class="toggle" onclick="toggleForce()"><div><b>تحديث إجباري</b><small>مفيش زر لاحقًا، لازم يحدّث</small></div><div class="sw" id="forcesw"></div></div>
+    <div style="margin-top:12px"><label class="l">إجباري لو إصدار المستخدم أقل من (Version code، اختياري)</label><input id="s_min" class="ltr" type="number" placeholder="0"></div>
+   </div>
+   <div class="glass sec"><h3>ملف APK للمتجر</h3><p>ارفع APK جديد، أو سيبه فاضي لو عايز تستخدم الرابط الحالي.</p>
+    <label class="drop"><input id="s_apkfile" type="file" accept=".apk,application/vnd.android.package-archive" onchange="sApkPick()"><div class="ic">📦</div><div><b id="s_apkname">اختر ملف APK</b><small id="s_apkinfo"></small></div></label>
+    <div style="margin-top:12px"><label class="l">أو رابط مباشر للـ APK</label><input id="s_apk" class="ltr" type="text" placeholder="https://..."></div>
+   </div>
+   <div id="spcard" class="glass sec hide"><h3>النشر</h3><div class="bar" style="margin-top:10px"><i id="spbar"></i></div><div id="semsg"></div></div>
+   <div class="actions"><div class="glass bar2"><button class="btn go" id="ssavebtn" onclick="saveStore()">نشر تحديث المتجر</button><button class="btn g" onclick="go('dash')">إلغاء</button></div></div>
   </div>
 
   <div id="v_edit" class="view hide">
@@ -178,6 +199,7 @@ textarea{min-height:84px;resize:vertical}
  <div class="glass tabbar">
   <button class="nav on" data-v="dash" onclick="go('dash')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>التحكم</button>
   <button class="nav" data-v="new" onclick="newApp()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>إضافة</button>
+  <button class="nav" data-v="store" onclick="go('store')"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>المتجر</button>
   <button class="nav" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>خروج</button>
  </div>
 </div>
@@ -202,7 +224,7 @@ function toast(t,ok){const d=document.createElement('div');d.className='glass to
 async function gh(path,opt){const r=await fetch(API+path,Object.assign({headers:hdr()},opt||{}));if(!r.ok&&r.status!==404){throw new Error(path+' → '+r.status+' '+(await r.text()).slice(0,200))}return r}
 function b64utf8(s){return btoa(unescape(encodeURIComponent(s)))}
 function svgIcon(letter,c){return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+c+'"/><stop offset="1" stop-color="#111"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="66" font-size="48" font-weight="800" text-anchor="middle" fill="#fff" font-family="sans-serif">'+letter+'</text></svg>')}
-function mock(){return {version:1,apps:[
+function mock(){return {version:1,store:{version:'1.2.0',versionCode:3,apk:'https://example.com/store.apk',size:17600000,force:false,minVersionCode:0,notes:{ar:'شكل جديد وتحميل أسرع',en:'New look and faster downloads'}},apps:[
  {id:'alsalah',package:'com.mas.alsalah',name:{en:'Al-Salah',ar:'الصلاة'},subtitle:{en:'Prayer times, Qibla and Quran',ar:'مواقيت الصلاة والقبلة والمصحف'},description:{en:'Accurate prayer times and offline Quran.',ar:'مواقيت صلاة دقيقة ومصحف بدون نت.'},whatsNew:{en:'Offline Quran section.',ar:'قسم المصحف بدون نت.'},category:'app',color:'#0B6B4B',featured:true,version:'3.1.0',versionCode:12,size:20768765,icon:svgIcon('ص','#0B6B4B'),screenshots:[svgIcon('1','#0B6B4B'),svgIcon('2','#14b8c4'),svgIcon('3','#5b8cff')],apk:'x'},
  {id:'neonrun',package:'com.mas.neonrun',name:{en:'Neon Run',ar:'نيون ران'},subtitle:{en:'Endless runner',ar:'لعبة جري لا نهائية'},description:{},whatsNew:{},category:'game',color:'#9a6bff',featured:false,version:'1.0.2',versionCode:3,size:48200000,icon:svgIcon('N','#9a6bff'),screenshots:[],apk:'x'},
  {id:'tasbeeh',package:'com.mas.tasbeeh',name:{en:'Tasbeeh',ar:'المسبحة'},subtitle:{en:'Digital counter',ar:'مسبحة رقمية'},description:{},whatsNew:{},category:'app',color:'#e84393',featured:true,version:'2.4.0',versionCode:9,size:8400000,icon:svgIcon('م','#e84393'),screenshots:[],apk:'x'},
@@ -226,9 +248,9 @@ async function loadCat(){
  if(!catalog.apps)catalog.apps=[];
 }
 /* views */
-function go(v){$('v_dash').classList.toggle('hide',v!=='dash');$('v_edit').classList.toggle('hide',v==='dash');
- document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===(v==='dash'?'dash':'new')));
- if(v==='dash')renderList();window.scrollTo(0,0)}
+function go(v){$('v_dash').classList.toggle('hide',v!=='dash');$('v_store').classList.toggle('hide',v!=='store');$('v_edit').classList.toggle('hide',v==='dash'||v==='store');
+ document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===(v==='dash'||v==='store'?v:'new')));
+ if(v==='dash')renderList();if(v==='store')fillStore();window.scrollTo(0,0)}
 function setF(f){filt=f;document.querySelectorAll('#fseg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));renderList()}
 const nm=a=>(a.name&&(a.name.ar||a.name.en))||a.id;
 function mb(n){return (n/1048576).toFixed(1)+' MB'}
@@ -277,7 +299,7 @@ function bump(k){let p=($('f_ver').value||'0.0.0').split('.').map(x=>parseInt(x)
 function apkPick(){const f=$('f_apkfile').files[0];if(f){$('apkname').textContent=f.name;$('apkinfo').textContent=mb(f.size)}}
 function iconPick(){const f=$('f_iconfile').files[0];if(f)$('iconprev').src=URL.createObjectURL(f)}
 function shotsPick(){const fs=[...$('f_shotfiles').files];$('shotinfo').textContent=fs.length+' صور جديدة';const sp=$('shotprev');sp.innerHTML='';fs.forEach(f=>{const im=document.createElement('img');im.src=URL.createObjectURL(f);sp.appendChild(im)})}
-function prog(p){$('pbar').style.width=Math.round(p*100)+'%'}
+function prog(p){['pbar','spbar'].forEach(i=>{const e=$(i);if(e)e.style.width=Math.round(p*100)+'%'})}
 const STEPS=['رفع الـ APK','رفع الأيقونة','رفع صور الشاشة','حفظ الكتالوج'];
 function steps(n,failed){$('steps').innerHTML='';STEPS.forEach((s,i)=>{const d=document.createElement('div');d.className='st'+(i<n?' done':i===n?' on':'');d.innerHTML='<span class="dot"></span><span></span>';d.children[1].textContent=s+(i<n?' ✓':'');$('steps').appendChild(d)})}
 function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file)})}
@@ -338,6 +360,34 @@ async function save(){
  }catch(e){msg('emsg',e.message,'er');toast('فشل النشر',false)}
  btn.disabled=false;
 }
+let sForce=false;
+function toggleForce(){sForce=!sForce;$('forcesw').classList.toggle('on',sForce)}
+function sApkPick(){const f=$('s_apkfile').files[0];if(f){$('s_apkname').textContent=f.name;$('s_apkinfo').textContent=mb(f.size)}}
+function fillStore(){
+ const s=catalog.store||{};const g=(o,k)=>(o&&o[k])||'';
+ $('s_ver').value=s.version||'';$('s_vc').value=s.versionCode||'';$('s_nar').value=g(s.notes,'ar');$('s_nen').value=g(s.notes,'en');
+ $('s_min').value=s.minVersionCode||'';$('s_apk').value=s.apk||'';sForce=!!s.force;$('forcesw').classList.toggle('on',sForce);
+ $('svnow').textContent=s.versionCode?('المنشور الآن: v'+s.version+' (code '+s.versionCode+')'+(s.force?' - إجباري':'')):'لسه مفيش تحديث منشور للمتجر.';
+}
+async function saveStore(){
+ const btn=$('ssavebtn');btn.disabled=true;$('spcard').classList.remove('hide');$('semsg').innerHTML='';prog(0);
+ try{
+  const ver=$('s_ver').value.trim(),vc=parseInt($('s_vc').value||'0',10);
+  if(!ver)throw new Error('اكتب رقم الإصدار');
+  if(!(vc>0))throw new Error('اكتب Version code أكبر من صفر');
+  const prev=(catalog.store&&catalog.store.versionCode)||0;
+  if(vc<prev)throw new Error('الـ Version code لازم يكون أكبر من أو يساوي المنشور ('+prev+')');
+  const s={version:ver,versionCode:vc,apk:$('s_apk').value.trim(),size:(catalog.store&&catalog.store.size)||0,sha256:(catalog.store&&catalog.store.sha256)||'',force:sForce,minVersionCode:parseInt($('s_min').value||'0',10)||0,notes:{en:$('s_nen').value.trim(),ar:$('s_nar').value.trim()}};
+  if(DEMO){prog(1);msg('semsg','وضع تجريبي: ما اتنشرش حاجة.','inf');btn.disabled=false;return}
+  const f=$('s_apkfile').files[0];
+  if(f){s.size=f.size;s.sha256=await sha256(f);s.apk=await uploadApk('store',f)}
+  else if(s.apk!==((catalog.store&&catalog.store.apk)||'')){s.size=0;s.sha256=''}
+  if(!s.apk)throw new Error('ارفع ملف APK أو اكتب رابط مباشر');
+  prog(0.9);await loadCat();catalog.store=s;await writeCat('Store update '+ver);
+  prog(1);msg('semsg','تم النشر. المستخدمين هيشوفوا التحديث عند فتح المتجر.','ok');toast('تم نشر تحديث المتجر');fillStore();
+ }catch(e){msg('semsg',e.message,'er');toast('فشل النشر',false)}
+ btn.disabled=false;
+}
 async function writeCat(m){
  const body={message:m,content:b64utf8(JSON.stringify(catalog,null,2)+'\n'),branch:BRANCH};if(catSha)body.sha=catSha;
  const r=await gh('/contents/'+CAT,{method:'PUT',headers:hdr({'Content-Type':'application/json'}),body:JSON.stringify(body)});
@@ -352,7 +402,7 @@ async function del(){
   const r=await gh('/releases/tags/app-'+cur.id);if(r.status===200){const j=await r.json();await gh('/releases/'+j.id,{method:'DELETE'})}
   toast('تم الحذف');go('dash')}catch(e){msg('emsg',e.message,'er');$('pcard').classList.remove('hide')}
 }
-function route(){const h=location.hash;if(/edit/.test(h)&&catalog.apps.length)edit(0);else if(/new/.test(h))newApp();else if(/del/.test(h)&&catalog.apps.length){edit(0);askDel()}else if(/save/.test(h)&&catalog.apps.length){edit(0);$('pcard').classList.remove('hide');steps(2);prog(.5);msg('emsg','رفع APK فشل (شبكة)','er')}}
+function route(){const h=location.hash;if(/store/.test(h)){go('store');return}if(/edit/.test(h)&&catalog.apps.length)edit(0);else if(/new/.test(h))newApp();else if(/del/.test(h)&&catalog.apps.length){edit(0);askDel()}else if(/save/.test(h)&&catalog.apps.length){edit(0);$('pcard').classList.remove('hide');steps(2);prog(.5);msg('emsg','رفع APK فشل (شبكة)','er')}}
 if(DEMO){catalog=mock();$('demoTag').classList.remove('hide');$('demoTag2').classList.remove('hide');enter()}
 else if(TOKEN){$('login').classList.remove('hide');$('tok').value=TOKEN;login()}
 else $('login').classList.remove('hide');
