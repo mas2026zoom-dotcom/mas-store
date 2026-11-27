@@ -1104,7 +1104,7 @@ fun ImageViewer(urls: List<String>, start: Int, onClose: () -> Unit) {
             ) { Icon(Icons.Filled.Close, contentDescription = "close", tint = Color.White, modifier = Modifier.size(22.dp)) }
             Spacer(Modifier.weight(1f))
             Text(
-                String.format(Locale.ROOT, "%d / %d", pager.currentPage + 1, urls.size),
+                String.format(Locale.ROOT, "\u200E%d \u200E/ \u200E%d", pager.currentPage + 1, urls.size),
                 color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold
             )
         }
