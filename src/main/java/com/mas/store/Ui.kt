@@ -235,6 +235,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
         mutableIntStateOf(when (startTab) { "games" -> 1; "apps" -> 2; "search" -> 3; "settings" -> 4; else -> 0 })
     }
     var selected by remember { mutableStateOf<AppItem?>(null) }
+    var viewer by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
     var handled by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -264,6 +265,7 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
             if (a != null) {
                 handled = true
                 selected = a
+                if (demo == "viewer" && a.screenshots.isNotEmpty()) viewer = a.screenshots to 0
                 if (getFlag == "1") Downloads.start(ctx, a)
             }
         }
@@ -303,8 +305,10 @@ fun StoreApp(tickState: MutableIntState, startTab: String?, openId: String?, get
                 exit = fadeOut(tween(180)) + slideOutVertically(tween(240)) { it / 10 },
             ) {
                 val a = selected
-                if (a != null) DetailScreen(a) { selected = null } else Box(Modifier.fillMaxSize())
+                if (a != null) DetailScreen(a, onBack = { selected = null }, onShot = { l, i -> viewer = l to i }) else Box(Modifier.fillMaxSize())
             }
+            val vw = viewer
+            if (vw != null) ImageViewer(vw.first, vw.second) { viewer = null }
             if (demo == "onboard" || (!onboarded && !(needUpdate && forced))) Onboarding { prefs.edit().putBoolean("onboarded", true).apply(); onboarded = true; if (demo == "onboard") later = true }
             if (needUpdate && su != null && (forced || !later) && (onboarded || forced) && demo != "onboard") UpdateSheet(su, forced) { later = true }
         }
@@ -687,7 +691,7 @@ fun SearchScreen(apps: List<AppItem>, onOpen: (AppItem) -> Unit) {
 }
 
 @Composable
-fun DetailScreen(app: AppItem, onBack: () -> Unit) {
+fun DetailScreen(app: AppItem, onBack: () -> Unit, onShot: (List<String>, Int) -> Unit = { _, _ -> }) {
     val ctx = LocalContext.current
     val ar = LocalAr.current
         val scroll = rememberScrollState()
@@ -730,6 +734,7 @@ fun DetailScreen(app: AppItem, onBack: () -> Unit) {
                             Box(
                                 Modifier.width(176.dp).height(376.dp).clip(sh).background(Color.White.copy(alpha = 0.06f))
                                     .border(BorderStroke(0.8.dp, hairline()), sh)
+                                    .pressScale { onShot(app.screenshots, app.screenshots.indexOf(u).coerceAtLeast(0)) }
                             ) {
                                 AsyncImage(model = u, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                             }
@@ -1070,4 +1075,38 @@ fun Modifier.sheetSurface(): Modifier {
     val dark = LocalDark.current
     val s = RoundedCornerShape(30.dp)
     return this.clip(s).background(if (dark) Color(0xFF2A2B2E) else Color.White).border(BorderStroke(0.8.dp, hairline()), s)
+}
+
+
+@Composable
+fun ImageViewer(urls: List<String>, start: Int, onClose: () -> Unit) {
+    BackHandler(true) { onClose() }
+    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = start.coerceIn(0, (urls.size - 1).coerceAtLeast(0))) { urls.size }
+    Box(
+        Modifier.fillMaxSize().background(Color(0xFF0B0B0C))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
+    ) {
+        androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize()) { p ->
+            AsyncImage(
+                model = urls[p], contentDescription = null, contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).windowInsetsPadding(WindowInsets.navigationBars).padding(vertical = 56.dp)
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.White.copy(alpha = 0.16f))
+                    .border(BorderStroke(0.8.dp, Color.White.copy(alpha = 0.25f)), androidx.compose.foundation.shape.CircleShape)
+                    .pressScale(onClose),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Filled.Close, contentDescription = "close", tint = Color.White, modifier = Modifier.size(22.dp)) }
+            Spacer(Modifier.weight(1f))
+            Text(
+                String.format(Locale.ROOT, "%d / %d", pager.currentPage + 1, urls.size),
+                color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
 }
