@@ -46,6 +46,10 @@ jobs:
           code=$?
           tail -n 150 build.log
           exit $code
+      - name: Build release APK
+        run: |
+          gradle --no-daemon assembleRelease > build-release.log 2>&1 || { tail -n 80 build-release.log; exit 1; }
+          ls build/outputs/apk/release/
       - name: Publish build log
         if: always()
         env:
@@ -63,8 +67,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp build/outputs/apk/debug/*.apk mas-store-debug.apk
+          cp build/outputs/apk/release/*.apk mas-store.apk
           gh release delete store-apk --yes --cleanup-tag || true
-          gh release create store-apk mas-store-debug.apk --title "MAS STORE debug APK" --notes "Debug build" --target "$GITHUB_SHA"
+          gh release create store-apk mas-store.apk mas-store-debug.apk --title "MAS STORE debug APK" --notes "Debug build" --target "$GITHUB_SHA"
   screens:
     needs: apk
     runs-on: ubuntu-latest
